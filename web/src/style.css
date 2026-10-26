@@ -1,0 +1,518 @@
+@import "tailwindcss";
+
+/* ============================================================
+   CordiSwarm Workbench — neutral operations console
+   主题：workbench store 是唯一写入方，生效主题写在 <html data-cs-theme="light|dark">；
+   data-theme 仅为兼容镜像（首帧脚本/其它写入方），CSS 只在 data-cs-theme 缺席时读它。
+   ============================================================ */
+
+/* —— 亮色主题（默认）：蜂群工坊 —— 米白纸底 + 炭墨 + 品牌琥珀橙，角色三色语言 —— */
+:root,
+:root[data-theme="light"]:not([data-cs-theme]) {
+  color-scheme: light;
+  --color-on-accent: #ffffff;
+  --radius-control: 10px;
+
+  /* 角色三色：探索者蓝 / 执行者金橙 / 验证者绿（蜂群分工一眼可辨） */
+  --role-explorer: #4c7fe8;
+  --role-explorer-soft: #e9f0fd;
+  --role-explorer-ink: #3a63c4;
+  --role-worker: #eea23f;
+  --role-worker-soft: #fdf1dd;
+  --role-worker-ink: #c07d1d;
+  --role-validator: #3fa37b;
+  --role-validator-soft: #e5f4ec;
+  --role-validator-ink: #2e8262;
+
+  --color-ink-1: #25241f;
+  --color-ink-2: #5b5748;
+  --color-ink-3: #6e6958;
+  --color-ink-4: #78725f;
+  --color-ink-5: #948e7c;
+
+  --color-bg-0: #f6f3ec;
+
+  /* 玻璃拟态：表面统一半透明，粒子层在面板后若隐若现（深色同理）；
+     -solid 变体给「墨色底上的文字」等需要实色的场景 */
+  --color-surface-0: rgba(251, 249, 244, 0.8);
+  --color-surface-1: rgba(255, 255, 255, 0.76);
+  --color-surface-2: rgba(243, 239, 229, 0.74);
+  --color-surface-3: rgba(234, 228, 213, 0.85);
+  --color-surface-1-solid: #ffffff;
+
+  --color-stroke-1: #ebe5d7;
+  --color-stroke-2: #ded5c0;
+  --color-stroke-3: #c4b897;
+
+  --color-accent: #de7c2e;
+  --color-accent-2: #ee9a55;
+  --color-accent-soft: #fbebda;
+  --color-bubble: rgba(251, 238, 222, 0.85);
+  --color-accent-line: #efd3b4;
+  --color-accent-ink: #b05a16;
+  --color-cool: var(--role-explorer);
+  --color-cool-2: #7ba2f0;
+  --color-warm: var(--role-worker);
+  --color-leaf: var(--role-validator);
+
+  --color-ok: #2f8563;
+  --color-warn: #d9a03d;
+  --color-danger: #d95d5d;
+  --color-danger-soft: #fbe4e4;
+  --color-danger-ink: #b83d3d;
+
+  --color-flow-edge: #c9bfa9;
+  --color-flow-grid: #efeae0;
+
+  /* DSH alias 层：交互态、描边、侧栏与业务色（亮色） */
+  --color-interactive-hover: rgba(70, 55, 30, 0.055);
+  --color-interactive-active: rgba(70, 55, 30, 0.1);
+  --color-border-l3: rgba(60, 48, 25, 0.14);
+  --color-border-l4: rgba(60, 48, 25, 0.2);
+  --color-sidebar-fill: rgba(251, 249, 244, 0.78);
+  --color-sidebar-fill-solid: #fbf9f4;
+  --color-elevated-fill: rgba(255, 255, 255, 0.85);
+  --color-business: #de7c2e;
+  --color-scrollbar-thumb: #cdc6b2;
+
+  /* 外壳度量：侧栏默认/下限/上限/折叠 rail */
+  --cs-sidebar-width: 280px;
+  --cs-sidebar-min: 264px;
+  --cs-sidebar-max: 420px;
+  --cs-sidebar-rail: 56px;
+
+  --color-shadow: rgba(72, 56, 30, 0.07);
+  --color-shadow-strong: rgba(72, 56, 30, 0.15);
+
+  /* 界面字体：Noto Sans SC 变量字体，由 main.ts 引入 */
+  --font-sans: "Noto Sans SC Variable", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", "Cascadia Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-size-ui: 13px;
+  --font-size-caption: 12px;
+  --font-size-code: 11.5px;
+  --font-size-micro: 10px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* 描边与圆角：细线 + 软阴影（蜂群工坊） */
+  --border-w: 1px;
+  --corner-g2: squircle;
+
+  /* 按钮高度令牌 */
+  --btn-h-sm: 28px;
+  --btn-h: 32px;
+  --btn-h-lg: 36px;
+
+  /* 缓动 */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* z-index 层级令牌 */
+  --z-overlay: 30;
+  --z-popover: 40;
+  --z-modal: 50;
+  --z-menu: 60;
+}
+
+/* —— 暗色主题：炭黑底 + 玻璃层级 + 薄荷绿主强调 —— */
+:root[data-theme="dark"]:not([data-cs-theme]),
+:root[data-cs-theme="dark"] {
+  color-scheme: dark;
+  --color-on-accent: #071b15;
+  --radius-control: 10px;
+
+  /* 角色三色（暗色变体）：soft 用半透明避免亮底刺眼 */
+  --role-explorer: #7ba2f0;
+  --role-explorer-soft: rgba(123, 162, 240, 0.14);
+  --role-explorer-ink: #a4c2f7;
+  --role-worker: #f0b45e;
+  --role-worker-soft: rgba(240, 180, 94, 0.15);
+  --role-worker-ink: #f5cd8e;
+  --role-validator: #5fc49a;
+  --role-validator-soft: rgba(95, 196, 154, 0.14);
+  --role-validator-ink: #8adbb8;
+  --color-ink-1: #f3f7f4;
+  --color-ink-2: #c6cfca;
+  --color-ink-3: #8d9993;
+  --color-ink-4: #7b8580;
+  --color-ink-5: #5e6863;
+
+  --color-bg-0: #080b0d;
+
+  --color-surface-0: rgba(13, 18, 19, 0.8);
+  --color-surface-1: rgba(17, 23, 24, 0.76);
+  --color-surface-2: rgba(27, 34, 35, 0.74);
+  --color-surface-3: rgba(39, 48, 47, 0.85);
+  --color-surface-1-solid: #111718;
+
+  --color-stroke-1: rgba(255, 255, 255, 0.1);
+  --color-stroke-2: rgba(255, 255, 255, 0.17);
+  --color-stroke-3: rgba(255, 255, 255, 0.27);
+
+  --color-accent: #f09a4e;
+  --color-accent-2: #f5b87e;
+  --color-accent-soft: rgba(240, 154, 78, 0.12);
+  --color-bubble: rgba(240, 154, 78, 0.1);
+  --color-accent-line: rgba(240, 154, 78, 0.32);
+  --color-accent-ink: #f2b878;
+  --color-cool: #7ba2f0;
+  --color-cool-2: #a4c2f7;
+  --color-warm: #f0b45e;
+  --color-leaf: #5fc49a;
+
+  --color-ok: #5fc49a;
+  --color-warn: #f0b45e;
+  --color-danger: #ff8293;
+  --color-danger-soft: rgba(255, 130, 147, 0.15);
+  --color-danger-ink: #ff9aa8;
+
+  --color-flow-edge: #58645f;
+  --color-flow-grid: #202726;
+
+  /* DSH alias 层（暗色） */
+  --color-interactive-hover: rgba(255, 255, 255, 0.065);
+  --color-interactive-active: rgba(117, 240, 201, 0.1);
+  --color-border-l3: rgba(255, 255, 255, 0.13);
+  --color-border-l4: rgba(255, 255, 255, 0.19);
+  --color-sidebar-fill: rgba(14, 12, 9, 0.8);
+  --color-sidebar-fill-solid: #0e0c09;
+  --color-elevated-fill: rgba(32, 29, 23, 0.85);
+  --color-business: #f09a4e;
+  --color-scrollbar-thumb: #424b47;
+
+  --color-shadow: rgba(0, 0, 0, 0.36);
+  --color-shadow-strong: rgba(0, 0, 0, 0.58);
+}
+
+html, body, #app {
+  height: 100%;
+  margin: 0;
+  background: var(--color-bg-0);
+  color: var(--color-ink-1);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  overflow: hidden;
+  letter-spacing: 0;
+}
+:root[data-cs-theme="dark"] body,
+:root[data-theme="dark"]:not([data-cs-theme]) body {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.017) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.017) 1px, transparent 1px),
+    radial-gradient(circle at 52% -8%, rgba(240, 154, 78, 0.1), transparent 30%),
+    var(--color-bg-0);
+  background-size: 40px 40px, 40px 40px, auto, auto;
+}
+html.theme-transitioning,
+html.theme-transitioning body,
+html.theme-transitioning #app {
+  transition: background-color 0.3s var(--ease-out), color 0.3s var(--ease-out);
+}
+* { box-sizing: border-box; }
+
+/* ============================================================
+   整体风格：2px 描边 + G2 连续曲率圆角
+   corner-shape: squircle 由浏览器原生把圆角按超椭圆插值，
+   等价于小米 HyperOS 的 G2 连续曲率；圆形与胶囊保持几何圆。
+   ============================================================ */
+
+/* 容器与控件：描边统一 2px，圆角走 G2 曲线 */
+.cs-composer,
+.cs-conversation-composer,
+.cs-conversation-header,
+.cs-settings-modal,
+.cs-settings-panel,
+.cs-settings-nav-cell,
+.cs-settings-close,
+.cs-settings,
+.cs-menu-panel,
+.cs-row-popover,
+.cs-current-run,
+.cs-list-panel,
+.cs-new-session,
+.cs-history-search,
+.cs-select,
+.cs-mode-button,
+.cs-theme-choice,
+.cs-team-resume,
+.cs-plugin-open,
+.cs-user-bubble,
+.cs-stats-pill,
+.plugin-panel,
+.plugin-rail,
+.wp-panel,
+.wp-confirm,
+.plan-review,
+.plan-clarify,
+.run-bar,
+.sc-run,
+.sc-pipeline {
+  border-width: var(--border-w) !important;
+  corner-shape: var(--corner-g2);
+}
+
+/* 侧栏与右栏的结构分隔线同样 2px */
+.cs-sidebar { border-right-width: var(--border-w) !important; }
+.plugin-rail { border-left-width: var(--border-w) !important; }
+.cs-conversation-header { border-bottom-width: var(--border-w) !important; }
+:root[data-cs-theme="dark"] .cs-sidebar,
+:root[data-cs-theme="dark"] .plugin-rail {
+  backdrop-filter: blur(24px) saturate(135%);
+}
+
+/* 不支持 backdrop-filter 时侧栏与右栏失去玻璃层，回落到实色避免文字压在半透明底上 */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root[data-cs-theme="dark"] .cs-sidebar,
+  :root[data-cs-theme="dark"] .plugin-rail {
+    background: var(--color-surface-0);
+  }
+}
+
+/* 圆形与胶囊控件保持几何圆，避免 squircle 把圆压成超椭圆方块 */
+.cs-send-button,
+.cs-conversation-send,
+.cs-composer-icon,
+.cs-round-button,
+.cs-session-dot,
+.cs-flow-dot,
+.cs-icon-button,
+.composer-controls .cs-composer-icon { corner-shape: round; }
+
+/* ============================================================
+   页面背景
+   ============================================================ */
+.app-bg {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(640px 380px at 82% -10%, color-mix(in srgb, var(--color-accent) 9%, transparent), transparent 70%),
+    radial-gradient(560px 420px at -8% 96%, color-mix(in srgb, var(--role-explorer, #4c7fe8) 7%, transparent), transparent 70%),
+    radial-gradient(520px 400px at 102% 88%, color-mix(in srgb, var(--role-validator, #3fa37b) 6%, transparent), transparent 70%),
+    var(--color-bg-0);
+  z-index: 0;
+}
+:root[data-cs-theme="dark"] .app-bg,
+:root[data-theme="dark"]:not([data-cs-theme]) .app-bg {
+  background:
+    radial-gradient(720px 420px at 78% -12%, color-mix(in srgb, var(--color-accent) 13%, transparent), transparent 72%),
+    radial-gradient(620px 460px at -10% 98%, color-mix(in srgb, var(--role-explorer, #4c7fe8) 10%, transparent), transparent 72%),
+    radial-gradient(560px 440px at 104% 90%, color-mix(in srgb, var(--role-validator, #3fa37b) 8%, transparent), transparent 72%),
+    var(--color-bg-0);
+}
+
+/* ============================================================
+   蜂群粒子背景层（SwarmParticles）
+   透明度集中在 surface/sidebar-fill 变量里；backdrop-filter 按
+   「祖先链无模糊层」原则挂在两处：
+   1) 组件 scoped：.cs-sidebar / .plugin-rail / .cs-conversation(含头部
+      与输入框) / .cs-composer / .cs-current-run —— 它们的后代自动共享
+      同一块模糊背景，无需逐个再加；
+   2) 下方全局清单：Teleport 到 body 的浮层与主区散件（无模糊祖先）。
+   最后的 @supports 是无 backdrop-filter 时的实色兜底。
+   ============================================================ */
+.cs-settings-modal,
+.cs-menu-panel,
+.cs-row-popover,
+.cs-browse-panel,
+.cs-dock-scrim,
+.wp-panel,
+.cs-team-resume,
+.cs-example-chip {
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .cs-sidebar,
+  .plugin-rail,
+  .cs-conversation,
+  .cs-conversation-composer,
+  .cs-conversation-header,
+  .cs-composer {
+    background: var(--color-surface-1) !important;
+  }
+}
+
+/* ============================================================
+   实色面板（纯色，无 backdrop-filter）—— 蜂群工坊：圆润 + 软阴影
+   ============================================================ */
+.panel-solid {
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-stroke-2);
+  box-shadow: 0 1px 2px var(--color-shadow), 0 10px 30px var(--color-shadow);
+  border-radius: 14px;
+}
+.glass-soft {
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-stroke-1);
+  box-shadow: 0 1px 2px var(--color-shadow), 0 4px 14px var(--color-shadow);
+  border-radius: 12px;
+}
+.glass-strong {
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-stroke-2);
+  box-shadow: 0 2px 4px var(--color-shadow), 0 18px 48px var(--color-shadow-strong);
+  border-radius: 16px;
+}
+/* 内嵌表面（日志 / 数据 / 输入框）：比面板更深的暖灰 */
+.surface-inset {
+  background: var(--color-surface-2);
+  border-color: var(--color-stroke-1);
+}
+
+/* ============================================================
+   角色三色语言（探索者蓝 / 执行者金橙 / 验证者绿）
+   用法：<div class="role-badge role-explorer"> 等
+   ============================================================ */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-weight: var(--font-weight-semibold);
+}
+.role-explorer { background: var(--role-explorer-soft); color: var(--role-explorer-ink); }
+.role-worker { background: var(--role-worker-soft); color: var(--role-worker-ink); }
+.role-validator { background: var(--role-validator-soft); color: var(--role-validator-ink); }
+
+/* ============================================================
+   状态徽章（门禁 / 运行状态）
+   ============================================================ */
+.state-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: var(--font-weight-medium);
+  line-height: 18px;
+}
+.state-badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.state-ok { background: var(--role-validator-soft); color: var(--role-validator-ink); }
+.state-warn { background: var(--role-worker-soft); color: var(--role-worker-ink); }
+.state-danger { background: var(--color-danger-soft); color: var(--color-danger-ink); }
+.state-neutral { background: var(--color-surface-2); color: var(--color-ink-3); }
+.state-accent { background: var(--color-accent-soft); color: var(--color-accent-ink); }
+
+/* ============================================================
+   令牌工具类：把设计令牌暴露为可组合的工具类，
+   模板直接引用类名，颜色与随主题切换的变量保持同一来源。
+   ============================================================ */
+@utility text-ink-1 { color: var(--color-ink-1); }
+@utility text-ink-2 { color: var(--color-ink-2); }
+@utility text-ink-3 { color: var(--color-ink-3); }
+@utility text-ink-4 { color: var(--color-ink-4); }
+@utility text-ink-5 { color: var(--color-ink-5); }
+@utility text-accent { color: var(--color-accent); }
+@utility text-accent-ink { color: var(--color-accent-ink); }
+@utility text-ok { color: var(--color-ok); }
+@utility text-warn { color: var(--color-warn); }
+@utility text-danger { color: var(--color-danger); }
+@utility text-leaf { color: var(--color-leaf); }
+@utility text-cool { color: var(--color-cool); }
+@utility text-warm { color: var(--color-warm); }
+
+@utility bg-surface-1 { background: var(--color-surface-1); }
+@utility bg-surface-2 { background: var(--color-surface-2); }
+@utility bg-surface-3 { background: var(--color-surface-3); }
+@utility bg-accent-soft { background: var(--color-accent-soft); }
+@utility bg-accent { background: var(--color-accent); }
+@utility bg-leaf { background: var(--color-leaf); }
+@utility bg-cool { background: var(--color-cool); }
+@utility bg-cool-2 { background: var(--color-cool-2); }
+@utility bg-warm { background: var(--color-warm); }
+
+@utility border-stroke-1 { border-color: var(--color-stroke-1); }
+@utility border-stroke-2 { border-color: var(--color-stroke-2); }
+@utility border-stroke-3 { border-color: var(--color-stroke-3); }
+@utility border-accent { border-color: var(--color-accent); }
+@utility border-danger { border-color: var(--color-danger); }
+
+@utility text-micro { font-size: var(--font-size-micro); line-height: 14px; }
+@utility text-code { font-size: var(--font-size-code); line-height: 17px; }
+@utility text-caption { font-size: var(--font-size-caption); line-height: 18px; }
+@utility text-ui { font-size: var(--font-size-ui); line-height: 20px; }
+
+.border-dashed { border-style: dashed !important; }
+
+/* ============================================================
+   布局（grid 等高 + 间距）
+   ============================================================ */
+.workbench {
+  position: relative;
+  z-index: 10;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+.workbench-row {
+  display: grid;
+  grid-template-columns: 252px minmax(0, 1fr) 300px;
+  gap: 12px;
+  padding: 12px;
+  min-height: 0;
+  align-items: stretch;
+}
+.wb-top { padding: 10px 10px 0 10px; min-height: 0; }
+.wb-left, .wb-right {
+  min-height: 0;
+  height: 100%;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.wb-center {
+  min-height: 0;
+  height: 100%;
+  align-self: stretch;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.wb-center .panel-solid { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+/* 左右栏内部面板填充整个网格单元（避免内容只堆在上方） */
+.wb-left > *,
+.wb-right > * {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--color-scrollbar-thumb); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-stroke-3); opacity: 0.9; }
+::-webkit-scrollbar-track { background: transparent; }
+
+::selection { background: color-mix(in srgb, var(--color-accent) 28%, transparent); }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 4px; }
+
+/* ============================================================
+   动效
+   ============================================================ */
+@keyframes node-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-ok) 0%, transparent); }
+  50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-ok) 40%, transparent); }
+}
+.running-pulse { animation: node-pulse 1.6s ease-in-out infinite; }
+@keyframes flow-dash { to { stroke-dashoffset: -24; } }
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fade-up 0.4s var(--ease-out) both; }

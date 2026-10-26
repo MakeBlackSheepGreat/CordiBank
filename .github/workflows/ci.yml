@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            runtime/package-lock.json
+            web/package-lock.json
+
+      - name: 安装运行时依赖
+        run: npm --prefix runtime ci
+
+      - name: 安装前端依赖
+        run: npm --prefix web ci
+
+      - name: 运行时类型检查
+        run: npm --prefix runtime run build
+
+      - name: 前端构建
+        run: npm --prefix web run build
+
+      - name: 自动化测试
+        run: npm --prefix runtime test
+
+      - name: MCP 服务自检
+        run: node mcp/selftest.mjs

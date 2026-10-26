@@ -1,0 +1,15 @@
+{
+  "name": "cordibank",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CordiBank 银行 AI 智能体：意图理解、三色判定、确认令牌、审计链与银行 MCP 外部服务",
+  "scripts": {
+    "install:all": "npm --prefix runtime install && npm --prefix web install",
+    "build": "npm --prefix runtime run build && npm --prefix web run build",
+    "test": "npm --prefix runtime test",
+    "dev": "npm --prefix runtime run dev",
+    "start": "npm --prefix runtime start",
+    "mcp:check": "node mcp/selftest.mjs",
+    "shot": "npm --prefix web exec -- node bank-shot.mjs"
+  }
+}

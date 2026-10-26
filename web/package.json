@@ -1,0 +1,39 @@
+{
+  "name": "cordibank-web",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "CordiBank 银行控制台：对话、风险判定、执行链路与审计留痕",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@fontsource-variable/noto-sans-sc": "^5.3.0",
+    "pinia": "^4.0.3",
+    "vue": "^3.5.41"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.33.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^24.13.3",
+    "@typescript-eslint/parser": "^8.44.0",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/test-utils": "^2.4.6",
+    "@vue/tsconfig": "^0.9.1",
+    "eslint": "^9.33.0",
+    "eslint-plugin-vue": "^10.4.0",
+    "happy-dom": "^15.11.7",
+    "playwright": "^1.63.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.44.0",
+    "vite": "^8.2.2",
+    "vitest": "^2.1.9",
+    "vue-tsc": "^3.3.11"
+  }
+}

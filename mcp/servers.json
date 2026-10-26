@@ -1,0 +1,28 @@
+{
+  "servers": [
+    {
+      "id": "bank-fx",
+      "name": "汇率与跨境服务",
+      "transport": "stdio",
+      "command": "node",
+      "args": ["__MCP_DIR__/fx-server.mjs"],
+      "timeoutMs": 15000
+    },
+    {
+      "id": "bank-risk",
+      "name": "反欺诈与征信服务",
+      "transport": "stdio",
+      "command": "node",
+      "args": ["__MCP_DIR__/risk-server.mjs"],
+      "timeoutMs": 15000
+    },
+    {
+      "id": "bank-catalog",
+      "name": "理财产品与费率服务",
+      "transport": "stdio",
+      "command": "node",
+      "args": ["__MCP_DIR__/catalog-server.mjs"],
+      "timeoutMs": 15000
+    }
+  ]
+}
