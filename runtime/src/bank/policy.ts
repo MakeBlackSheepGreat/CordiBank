@@ -29,10 +29,28 @@ export const TOOL_SPECS: ReadonlyArray<ToolSpec> = [
   { tool: "wealth_list", scene: "wealth", label: "理财产品查询", baseLevel: "green", reversible: true, description: "按风险等级列出产品对比" },
   { tool: "wealth_risk", scene: "wealth", label: "风险测评", baseLevel: "green", reversible: true, description: "根据问答给出风险承受等级" },
   { tool: "wealth_purchase", scene: "wealth", label: "申购理财", baseLevel: "red", reversible: false, description: "资金申购，需强验证" },
+  { tool: "wealth_redeem", scene: "wealth", label: "赎回理财", baseLevel: "red", reversible: false, description: "赎回持仓回到活期，收益不计" },
+  { tool: "subscription_reminder", scene: "subscription", label: "续费提醒", baseLevel: "green", reversible: true, description: "列出未来待扣费订阅与合计金额" },
   { tool: "birthday_lock", scene: "cross", label: "生日资金预锁", baseLevel: "yellow", reversible: true, description: "锁定资金并在到期前预订服务" },
+  { tool: "birthday_book", scene: "cross", label: "礼遇下单", baseLevel: "yellow", reversible: true, description: "预订鲜花蛋糕，优先抵扣锁定资金" },
 ];
 
-const SPEC_BY_TOOL = new Map(TOOL_SPECS.map((spec) => [spec.tool, spec]));
+const SPEC_BY_TOOL = new Map<string, ToolSpec>(TOOL_SPECS.map((spec) => [spec.tool, spec]));
+
+/** 动态登记工具：内置工具启动时已登记，MCP 工具在握手后追加。 */
+export function registerToolSpec(spec: ToolSpec): void {
+  SPEC_BY_TOOL.set(spec.tool, spec);
+}
+
+/** 移除工具登记，用于 MCP 服务器下线。 */
+export function unregisterToolSpec(tool: string): void {
+  SPEC_BY_TOOL.delete(tool);
+}
+
+/** 当前全部工具定义，含动态登记的外部工具。 */
+export function listToolSpecs(): ToolSpec[] {
+  return [...SPEC_BY_TOOL.values()];
+}
 
 export function specOf(tool: string): ToolSpec | undefined {
   return SPEC_BY_TOOL.get(tool);

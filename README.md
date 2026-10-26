@@ -14,10 +14,10 @@
 |---|---|---|
 | 智能转账 | 按人名、手机号转账；AA 拆分收款；定时转账 | `transfer`、`create_aa`、`schedule_transfer` |
 | 账单分析 | 分类统计；异常交易识别；月度与年度报告 | `analyze_bills` |
-| 理财操作 | 产品对比；风险测评；申购拦截 | `wealth_list`、`wealth_risk`、`wealth_purchase` |
+| 理财操作 | 产品对比；风险测评；申购与赎回 | `wealth_list`、`wealth_risk`、`wealth_purchase`、`wealth_redeem` |
 | 卡片管理 | 卡片查询；锁卡解锁；挂失；额度调整；新卡申请 | `list_cards`、`lock_card`、`report_loss`、`adjust_limit`、`apply_card` |
-| 订阅代扣 | 识别扣费；续费提醒；一键取消 | `list_subscriptions`、`cancel_subscription` |
-| 跨场景联动 | 生日资金预锁；到期前预订鲜花与蛋糕 | `birthday_lock` |
+| 订阅代扣 | 识别扣费；续费提醒；一键取消 | `list_subscriptions`、`subscription_reminder`、`cancel_subscription` |
+| 跨场景联动 | 生日资金预锁；预订鲜花与蛋糕 | `birthday_lock`、`birthday_book` |
 
 ## 执行链路
 
@@ -33,6 +33,43 @@
     → 审计链：逐条带前序哈希，可校验是否被改动
     → 回复渲染：数字全部来自工具返回，模板化输出
 ```
+
+## Harness 框架
+
+工具、外部服务、技能三样东西，最终都收敛成一份工具描述，模型看到的是一张表。
+
+```
+内置工具（bank/builtin-tools.ts）  ─┐
+外部服务（plugins/mcp-tools.ts）   ─┼→ ToolRegistry → tools 声明 → 模型 → 策略引擎 → 执行分派
+技能目录（bank/skill-tools.ts）    ─┘
+```
+
+统一描述符的字段。
+
+| 字段 | 含义 | 来源 |
+|---|---|---|
+| `name` | 全局唯一名，外部工具带 `mcp__{服务}__{工具}` 前缀 | 注册时确定 |
+| `summary` | 一句话说明，直接进请求体 | 策略表或服务端描述 |
+| `scene` | 归属场景，用于按场景收窄声明 | 策略表或服务清单 |
+| `risk` | 等级、可逆性、是否写操作 | 策略表或服务清单声明 |
+| `parameters` | JSON Schema，内置由契约生成，外部透传服务端 | 契约或服务端 |
+| `source` | `builtin` 或 `mcp` | 注册时确定 |
+
+注册表的行为约束。
+
+同名工具直接报错，不做静默覆盖。外部工具调用失败不影响内置工具。服务器下线可按来源或按服务器整体移除。
+
+技能的渐进披露照搬 DSH 的两段式：系统提示词只放目录摘要（每行一条，截断 80 字符），模型需要细节时调 `skill_load` 取全文，单次上限 4000 字符。新增技能只要往 `skills/` 放一个带 YAML 前置元信息的 Markdown，下次请求自动进目录。
+
+风险分级的判定顺序：工具级声明优先，其次服务级声明，最后默认只读。`irreversible: true` 一律判红，不论其他声明。
+
+### 扩展方式
+
+新增内置工具，三步：在 `tool-schema.ts` 加参数契约，在 `policy.ts` 加风险画像，在 `tools.ts` 加执行分支。注册表与模型工具集自动包含。
+
+新增外部服务，两步：写一个 MCP 服务端，在 `mcp/servers.json` 加一条清单，声明 `risk`、`scene` 与可选的 `tools` 逐工具覆盖。启动时自动握手注册。
+
+新增技能，一步：往 `skills/` 放 Markdown，前置元信息写 `name`、`description`、`tags`。
 
 ## 模型层
 
@@ -133,6 +170,9 @@ Agent 循环默认保留思考，多步推理需要它。只读问答场景可�
 | 汇率与跨境服务 | `list_currencies`、`get_rate`、`convert` | 跨境汇款、外币消费折算 |
 | 反欺诈与征信服务 | `screen_payee`、`fraud_signals`、`credit_score` | 转账前筛查、额度评估 |
 | 理财产品与费率服务 | `list_products`、`explain_fee`、`suitability` | 产品对比、费率解释、适当性校验 |
+| 生日礼遇预订服务 | `list_gifts`、`place_order`、`get_order`、`cancel_order` | 礼遇套餐、下单、查询、取消 |
+
+外部工具与内置工具走同一张注册表，模型看到的是一份合并后的工具集，名字带 `mcp__` 前缀区分来源。
 
 三个服务都是零依赖的 Node 程序，使用 stdio 传输，按行分帧 JSON-RPC 2.0。
 
@@ -168,9 +208,12 @@ npm run mcp:check
 
 | 指标 | 实测值 | 复现方式 |
 |---|---|---|
-| 单元与集成测试 | 47 项全部通过 | `npm test` |
+| 单元与集成测试 | 80 项全部通过 | `npm test` |
 | 真实模型调用 | 5 项全部通过，单轮 0.6 至 0.9 秒 | `tests/model-live.test.ts` |
 | Agent 循环 | 9 项全部通过，含真实多轮工具调用与缓存命中 | `tests/agent-loop.test.ts` |
+| Harness 注册表 | 15 项全部通过，含风险分级与解析反解 | `tests/harness.test.ts` |
+| 技能渐进披露 | 8 项全部通过，新增 Markdown 即进目录 | `tests/skill-tools.test.ts` |
+| 工具总量 | 34 个（内置 21、外部 13） | `bank.agent.tools` |
 | 循环成本 | 2 次请求累计 3806 prompt，命中 3456，命中率 91% | `npm run bench:llm` |
 | 提示词体积 | 系统提示词 1971 字符降至 184 字符 | 同上 |
 | 模型输出契约 | 9 项全部通过，越权工具与越界金额被拒 | `tests/model-contract.test.ts` |
@@ -252,10 +295,20 @@ runtime/src/bank/          银行业务域
 ├─ guard.ts                输入守卫、内容扫描、来源校验
 ├─ intent.ts               中文意图解析与槽位抽取
 ├─ tools.ts                业务工具与账单分析
+├─ builtin-tools.ts        内置工具转统一描述符
+├─ loop-tools.ts           循环声明与执行分派
+├─ skill-tools.ts          技能目录与按需加载
+├─ model-intent.ts         模型输出契约校验
+├─ model-brain.ts          意图解析与对话求解
 ├─ orchestrator.ts         六段式编排
 ├─ audit.ts                哈希链审计与脱敏
 ├─ scenarios.ts            六场景演示剧本
 └─ redteam.ts              40 条红队用例与统计
+
+runtime/src/harness/       工具框架
+├─ types.ts                描述符、风险画像、调用器契约
+├─ registry.ts             注册表与外部工具命名
+└─ schema.ts               槽位契约转 JSON Schema
 
 runtime/src/core/          错误码与密钥脱敏
 runtime/src/llm/           OpenAI 兼容客户端、Agent 循环、提示词与工具声明
@@ -289,6 +342,7 @@ web/src/stores/bank.ts     控制台状态编排
 | `bank.agent.reset` | `[]` | 重置合成数据，审计链只追加 |
 | `bank.agent.model` | `[]` | 模型层状态：供应商、模型名、模式、可用性 |
 | `bank.agent.ask` | `[sessionId, text]` | 对话式问答：模型多轮调用只读工具，写意图转交编排层 |
+| `bank.agent.tools` | `[]` | 工具清单：内置与外部合计，含来源、场景与风险等级 |
 | `mcp.client.list` | `[]` | 已配置的 MCP 服务器 |
 | `mcp.client.add` | `[{ id, name, transport, command?, url? }]` | 新增服务器 |
 | `mcp.client.remove` | `[serverId]` | 移除服务器 |

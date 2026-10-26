@@ -178,11 +178,16 @@ const RULES: ReadonlyArray<Rule> = [
     tool: "list_subscriptions",
     pattern: /(订阅|代扣|续费|自动扣费|会员|退订)/,
     build: (text, state) => {
-      if (!/(取消|退订|关掉|停掉|关闭)/.test(text)) return { slots: {}, missing: [], tool: "list_subscriptions" };
-      const name = matchSubscription(text, state);
-      return name === undefined
-        ? { slots: {}, missing: ["subscriptionName"], tool: "cancel_subscription" }
-        : { slots: { subscriptionName: name }, missing: [], tool: "cancel_subscription" };
+      if (/(取消|退订|关掉|停掉|关闭)/.test(text)) {
+        const name = matchSubscription(text, state);
+        return name === undefined
+          ? { slots: {}, missing: ["subscriptionName"], tool: "cancel_subscription" }
+          : { slots: { subscriptionName: name }, missing: [], tool: "cancel_subscription" };
+      }
+      if (/提醒|即将|快到期|要扣费|什么时候扣|哪天扣|要续费|续费日/.test(text)) {
+        return { slots: {}, missing: [], tool: "subscription_reminder" };
+      }
+      return { slots: {}, missing: [], tool: "list_subscriptions" };
     },
   },
   {
@@ -206,6 +211,14 @@ const RULES: ReadonlyArray<Rule> = [
     build: (text, state) => {
       if (/风险测评|风险等级|承受能力/.test(text)) return { slots: {}, missing: [], tool: "wealth_risk" };
       const amount = extractAmount(text);
+      if (/赎回|取出|卖出|卖掉/.test(text)) {
+        const redeemed = matchProduct(text, state);
+        return {
+          slots: { ...(redeemed === undefined ? {} : { productId: redeemed }), ...(amount === null ? {} : { amountCents: amount }) },
+          missing: [],
+          tool: "wealth_redeem",
+        };
+      }
       if (/申购|买入|购买|投|买/.test(text)) {
         const productId = matchProduct(text, state);
         const missing: string[] = [];
@@ -241,6 +254,15 @@ const RULES: ReadonlyArray<Rule> = [
     tool: "birthday_lock",
     pattern: /(生日|纪念日)/,
     build: (text) => {
+      const wantBook = /(订|下单|买|准备|安排).{0,6}(花|蛋糕|礼|礼物)|蛋糕|鲜花/.test(text);
+      if (wantBook) {
+        const gift = /花.*蛋糕|蛋糕.*花|都要|组合/.test(text)
+          ? "both"
+          : /蛋糕/.test(text)
+            ? "cake"
+            : "flower";
+        return { slots: { gift, purpose: "生日礼遇" }, missing: [], tool: "birthday_book" };
+      }
       const amount = extractAmount(text);
       return {
         slots: { purpose: "生日礼遇", ...(amount === null ? { amountCents: 100000 } : { amountCents: amount }) },

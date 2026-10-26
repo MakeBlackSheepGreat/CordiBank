@@ -1,10 +1,15 @@
 import type { LlmClient } from "../llm/client.ts";
 import { runAgentLoop, type LoopOutcome } from "../llm/loop.ts";
-import { AGENT_SYSTEM_PROMPT, buildIntentTools, buildIntentUserMessage, INTENT_SYSTEM_PROMPT } from "../llm/prompts.ts";
+import { AGENT_SYSTEM_PROMPT, buildIntentToolset, buildIntentUserMessage, INTENT_SYSTEM_PROMPT } from "../llm/prompts.ts";
 import type { ChatMessage } from "../llm/types.ts";
+import { ToolRegistry } from "../harness/registry.ts";
+import type { ExternalInvoker } from "../harness/types.ts";
+import type { Skill } from "../plugins/skill.ts";
+import { builtinToolDescriptors } from "./builtin-tools.ts";
+import { buildLoopTools, createLoopExecutor } from "./loop-tools.ts";
 import { ModelIntentError, toIntentFromCall } from "./model-intent.ts";
+import { buildAgentPrompt, createSkillLoader, renderSkillCatalog, skillLoadDescriptor } from "./skill-tools.ts";
 import { yuan } from "./data.ts";
-import { buildLoopTools, createReadOnlyExecutor } from "./loop-tools.ts";
 import type { BankState, Intent } from "./types.ts";
 
 /** 模型调用元信息：写入审计，便于复盘模型是否被使用与耗时。 */
@@ -22,16 +27,34 @@ export interface BrainResult {
 }
 
 /**
- * 模型大脑：只负责把自然语言转成受约束的意图。
- * 它拿不到执行权限，也拿不到审计写入权限，输出必须通过契约校验。
+ * 模型大脑：把自然语言转成受约束的意图，或按需调用只读工具取数。
+ * 它拿不到执行权限，也拿不到审计写入权限。
  */
 export class ModelBrain {
   private readonly client: LlmClient;
   private readonly loadState: () => BankState;
+  private readonly registry: ToolRegistry;
+  private readonly invoker: ExternalInvoker | undefined;
+  private readonly loadSkills: () => Skill[];
 
-  constructor(client: LlmClient, loadState: () => BankState) {
+  constructor(
+    client: LlmClient,
+    loadState: () => BankState,
+    registry?: ToolRegistry,
+    invoker?: ExternalInvoker,
+    loadSkills?: () => Skill[],
+  ) {
     this.client = client;
     this.loadState = loadState;
+    this.invoker = invoker;
+    this.loadSkills = loadSkills ?? (() => []);
+    if (registry === undefined) {
+      const fallback = new ToolRegistry();
+      fallback.registerMany(builtinToolDescriptors());
+      this.registry = fallback;
+    } else {
+      this.registry = registry;
+    }
   }
 
   get available(): boolean {
@@ -44,6 +67,11 @@ export class ModelBrain {
 
   get endpoint(): string {
     return this.client.endpoint;
+  }
+
+  /** 工具清单规模：内置与外部合计。 */
+  get toolCount(): number {
+    return this.registry.size;
   }
 
   /** 解析用户输入；hint 为规则粗判的场景，用于缩小工具声明范围。 */
@@ -63,7 +91,10 @@ export class ModelBrain {
       },
     ];
     // 意图解析关掉思考模式：抽槽是确定性任务，reasoning token 属于纯浪费。
-    const reply = await this.client.chat(messages, buildIntentTools(hint), { toolChoice: "required", thinking: false });
+    const reply = await this.client.chat(messages, buildIntentToolset(this.registry.list(), hint), {
+      toolChoice: "required",
+      thinking: false,
+    });
     const call = reply.toolCalls[0];
     if (call === undefined) {
       throw new ModelIntentError("模型没有给出工具调用");
@@ -87,8 +118,9 @@ export class ModelBrain {
    */
   async converse(text: string, options: { maxSteps?: number; tokenBudget?: number } = {}): Promise<LoopOutcome> {
     const state = this.loadState();
+    const skills = this.loadSkills();
     const messages: ChatMessage[] = [
-      { role: "system", content: AGENT_SYSTEM_PROMPT },
+      { role: "system", content: buildAgentPrompt(renderSkillCatalog(skills)) },
       {
         role: "user",
         content: buildIntentUserMessage({
@@ -100,11 +132,19 @@ export class ModelBrain {
         }),
       },
     ];
+    const tools = [
+      ...this.registry.readonlyTools(),
+      ...(skills.length === 0 ? [] : [skillLoadDescriptor()]),
+    ];
     return await runAgentLoop({
       client: this.client,
       messages,
-      tools: buildLoopTools(),
-      execute: createReadOnlyExecutor(this.loadState),
+      tools: buildLoopTools(tools),
+      execute: createLoopExecutor(
+        this.loadState,
+        this.invoker,
+        skills.length === 0 ? {} : { skill_load: createSkillLoader(skills) },
+      ),
       ...options,
     });
   }

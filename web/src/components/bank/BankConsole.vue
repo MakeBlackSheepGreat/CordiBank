@@ -288,8 +288,20 @@ async function onConvert(): Promise<void> {
 
         <section class="card">
           <div class="card__head">
-            <h2>外部服务</h2>
-            <span class="tag tag--plain">{{ bank.mcpTools.length }} 个工具</span>
+            <h2>工具与外部服务</h2>
+            <span class="tag tag--plain">
+              {{ bank.toolSummary ? `${bank.toolSummary.total} 个工具` : `${bank.mcpTools.length} 个工具` }}
+            </span>
+          </div>
+          <div v-if="bank.toolSummary" class="mcp">
+            <div class="mcp__row">
+              <span class="mcp__name">内置工具</span>
+              <span class="mcp__meta">{{ bank.toolSummary.builtin }} 个</span>
+            </div>
+            <div class="mcp__row">
+              <span class="mcp__name">外部工具</span>
+              <span class="mcp__meta">{{ bank.toolSummary.mcp }} 个</span>
+            </div>
           </div>
           <ul class="mcp">
             <li v-for="server in bank.mcpServers" :key="server.id" class="mcp__row">

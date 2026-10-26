@@ -65,6 +65,7 @@ const targets = [
   ["fx-server.mjs", "convert", { amount: 100, base: "USD", quote: "CNY" }],
   ["risk-server.mjs", "screen_payee", { name: "王晓明", account: "6222020200111234", amountCents: 80000 }],
   ["catalog-server.mjs", "suitability", { productId: "p-005", customerRiskLevel: 2, amountCents: 5000000 }],
+  ["gift-server.mjs", "place_order", { giftId: "gift-combo", deliverDate: "2026-11-08" }],
 ];
 
 for (const [file, tool, args] of targets) {

@@ -1,4 +1,5 @@
 import { AuditChain, maskSensitive } from "./audit.ts";
+import { builtinToolDescriptors } from "./builtin-tools.ts";
 import { ConfirmIssuer, digestOf } from "./confirm.ts";
 import { BankStore, yuan } from "./data.ts";
 import { checkPayeeOrigin, guardInput, guardOutput, scanUntrusted } from "./guard.ts";
@@ -6,6 +7,8 @@ import { extractAmount, extractPayee, parseIntent } from "./intent.ts";
 import type { ModelBrain } from "./model-brain.ts";
 import { evaluate, specOf } from "./policy.ts";
 import { executeTool } from "./tools.ts";
+import { parseMcpToolName, ToolRegistry } from "../harness/registry.ts";
+import type { ExternalInvoker } from "../harness/types.ts";
 import type {
   BankSession,
   BankState,
@@ -39,6 +42,10 @@ export interface BankAgentOptions {
   intentMode?: "rule" | "hybrid" | "model";
   /** 工具声明范围：scene 时按规则粗判的场景收窄声明，all 时全量声明。 */
   toolScope?: "all" | "scene";
+  /** 工具注册表：外部工具由插件在握手后追加，缺省时只装内置工具。 */
+  registry?: ToolRegistry;
+  /** 外部工具调用器：把 mcp__ 前缀的工具转给对应服务。 */
+  invoker?: ExternalInvoker;
 }
 
 /** 银行智能体编排：守卫、解析、判定、确认、执行、审计六段式。 */
@@ -49,6 +56,8 @@ export class BankAgent {
   private readonly brain: ModelBrain | undefined;
   private readonly intentMode: "rule" | "hybrid" | "model";
   private readonly toolScope: "all" | "scene";
+  private readonly invoker: ExternalInvoker | undefined;
+  readonly tools: ToolRegistry;
   private readonly sessions = new Map<string, BankSession>();
   private readonly drafts = new Map<string, Draft>();
 
@@ -59,6 +68,34 @@ export class BankAgent {
     this.brain = options.brain;
     this.intentMode = options.intentMode ?? "hybrid";
     this.toolScope = options.toolScope ?? "all";
+    this.invoker = options.invoker;
+    this.tools = options.registry ?? new ToolRegistry();
+    if (options.registry === undefined) this.tools.registerMany(builtinToolDescriptors());
+  }
+
+  /** 工具清单快照：含内置与已接入的外部工具。 */
+  toolInventory(): Array<{ name: string; source: string; scene: string; level: string; write: boolean; summary: string }> {
+    return this.tools.list().map((descriptor) => ({
+      name: descriptor.name,
+      source: descriptor.source,
+      scene: descriptor.scene,
+      level: descriptor.risk.level,
+      write: descriptor.risk.write,
+      summary: descriptor.summary,
+    }));
+  }
+
+  /** 统一执行入口：内置走本地工具，外部走注入的调用器。 */
+  private async run(tool: string, slots: IntentSlots, state: BankState): Promise<ToolResult> {
+    const external = parseMcpToolName(tool);
+    if (external !== null) {
+      if (this.invoker === undefined) {
+        return { ok: false, tool, message: "", error: "外部工具不可用：未注入调用器" };
+      }
+      const result = await this.invoker(external.serverId, external.remoteName, slots as Record<string, unknown>);
+      return { ok: result.ok, tool, message: result.message, ...(result.data === undefined ? {} : { data: result.data }) };
+    }
+    return executeTool({ tool, slots, state });
   }
 
   /** 模型层状态：供界面与答辩展示，不暴露凭据。 */
@@ -533,7 +570,7 @@ export class BankAgent {
     }
 
     // 第八段：绿色操作直接执行。
-    const execution = executeTool({ tool: intent.tool, slots: intent.slots, state });
+    const execution = await this.run(intent.tool, intent.slots, state);
     const untrusted = intent.tool === "analyze_bills" ? this.inspectUntrusted(state) : [];
     const note =
       untrusted.length > 0
@@ -664,7 +701,7 @@ export class BankAgent {
     }
 
     session.pending = undefined;
-    const execution = executeTool({ tool: pending.tool, slots: pending.slots, state });
+    const execution = await this.run(pending.tool, pending.slots, state);
     const audit = this.audit({
       sessionId: session.id,
       userText: text,

@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { BankStore } from "../src/bank/data.ts";
-import { buildLoopTools, READONLY_TOOLS } from "../src/bank/loop-tools.ts";
+import { buildLoopTools, readonlyToolNames } from "../src/bank/loop-tools.ts";
 import { ModelBrain } from "../src/bank/model-brain.ts";
 import { BankAgent } from "../src/bank/orchestrator.ts";
 import { resolveLlm } from "../src/config.ts";
@@ -39,10 +39,13 @@ describe("提示词体积", () => {
   });
 
   it("只读工具与写操作严格分开", () => {
-    expect(READONLY_TOOLS).toContain("analyze_bills");
-    expect(READONLY_TOOLS).toContain("query_balance");
-    expect(READONLY_TOOLS).not.toContain("transfer");
-    expect(READONLY_TOOLS).not.toContain("report_loss");
+    const readonly = readonlyToolNames();
+    expect(readonly).toContain("analyze_bills");
+    expect(readonly).toContain("query_balance");
+    expect(readonly).toContain("subscription_reminder");
+    expect(readonly).not.toContain("transfer");
+    expect(readonly).not.toContain("report_loss");
+    expect(readonly).not.toContain("wealth_redeem");
   });
 });
 
@@ -56,7 +59,7 @@ describe.skipIf(!configured)("DeepSeek V4.1 Flash 循环", () => {
       expect(outcome.steps.length).toBeGreaterThanOrEqual(1);
       const toolNames = outcome.steps.flatMap((step) => step.calls.map((call) => call.name));
       expect(toolNames.length).toBeGreaterThanOrEqual(1);
-      expect(toolNames.every((name) => READONLY_TOOLS.includes(name))).toBe(true);
+      expect(toolNames.every((name) => readonlyToolNames().includes(name))).toBe(true);
       if (outcome.stopReason === "final") expect(outcome.text.length).toBeGreaterThan(0);
     },
     120000,

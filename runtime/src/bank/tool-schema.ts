@@ -107,6 +107,24 @@ export const TOOL_CONTRACTS: Readonly<Record<string, ToolContract>> = {
       amountCents: { kind: "integer", description: "申购金额，单位分", required: true, min: 1, max: 100_000_000 },
     },
   },
+  wealth_redeem: {
+    tool: "wealth_redeem",
+    summary: "赎回理财产品，资金回到活期",
+    slots: {
+      productId: {
+        kind: "enum",
+        description: "产品标识，省略表示全部赎回",
+        required: false,
+        values: ["p-001", "p-002", "p-003", "p-004", "p-005"],
+      },
+      amountCents: { kind: "integer", description: "赎回金额，单位分，省略表示全部", required: false, min: 1, max: 100_000_000 },
+    },
+  },
+  subscription_reminder: {
+    tool: "subscription_reminder",
+    summary: "列出未来三十天待扣费的订阅与合计金额",
+    slots: {},
+  },
   change_password: { tool: "change_password", summary: "修改登录或支付密码", slots: {} },
   freeze_account: { tool: "freeze_account", summary: "冻结账户全部交易", slots: {} },
   birthday_lock: {
@@ -117,6 +135,37 @@ export const TOOL_CONTRACTS: Readonly<Record<string, ToolContract>> = {
       purpose: { kind: "string", description: "用途说明", required: false, maxLength: 32 },
     },
   },
+  birthday_book: {
+    tool: "birthday_book",
+    summary: "预订生日礼遇，优先抵扣已锁定资金",
+    slots: {
+      gift: {
+        kind: "enum",
+        description: "礼遇类型",
+        required: true,
+        values: ["cake", "flower", "both"],
+      },
+      purpose: { kind: "string", description: "用途说明", required: false, maxLength: 32 },
+    },
+  },
 };
 
 export const TOOL_NAMES: readonly string[] = Object.keys(TOOL_CONTRACTS);
+
+/** 写操作清单：改动资金、额度或账户状态，Agent 循环内不执行。 */
+export const WRITE_TOOL_NAMES: ReadonlySet<string> = new Set([
+  "transfer",
+  "create_aa",
+  "schedule_transfer",
+  "cancel_subscription",
+  "lock_card",
+  "report_loss",
+  "apply_card",
+  "adjust_limit",
+  "wealth_purchase",
+  "wealth_redeem",
+  "change_password",
+  "freeze_account",
+  "birthday_lock",
+  "birthday_book",
+]);

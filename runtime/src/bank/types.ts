@@ -155,6 +155,8 @@ export interface IntentSlots {
   at?: string;
   shares?: number;
   riskLevel?: number;
+  /** 礼遇类型：cake、flower 或 both。 */
+  gift?: string;
 }
 
 /** 意图解析结果：槽位缺失时由编排层追问。 */

@@ -1,4 +1,5 @@
 import { RuntimeError } from "../core/errors.ts";
+import { parseMcpToolName } from "../harness/registry.ts";
 import { specOf } from "./policy.ts";
 import { TOOL_CONTRACTS } from "./tool-schema.ts";
 import type { Intent, IntentSlots } from "./types.ts";
@@ -154,7 +155,7 @@ export function requireInteger(value: unknown, name: string): number {
 
 /**
  * 从原生工具调用构造意图。
- * 参数按契约逐项校验，多余字段丢弃，缺必填项记为待追问。
+ * 内置工具按契约逐项校验，外部工具参数交给服务端 schema，此处只做登记校验。
  */
 export function toIntentFromCall(name: string, argsJson: string): ParsedModelIntent {
   if (name === "unknown") {
@@ -163,14 +164,7 @@ export function toIntentFromCall(name: string, argsJson: string): ParsedModelInt
       droppedSlots: [],
     };
   }
-  const contract = TOOL_CONTRACTS[name];
-  if (contract === undefined) {
-    throw new ModelIntentError(`模型调用了未登记的工具：${name}`);
-  }
-  const spec = specOf(name);
-  if (spec === undefined) {
-    throw new ModelIntentError(`工具缺少策略定义：${name}`);
-  }
+
   let raw: Record<string, unknown> = {};
   try {
     const parsed = JSON.parse(argsJson === "" ? "{}" : argsJson) as unknown;
@@ -179,6 +173,25 @@ export function toIntentFromCall(name: string, argsJson: string): ParsedModelInt
     }
   } catch {
     throw new ModelIntentError("工具参数不是合法 JSON");
+  }
+
+  // 外部工具：策略表里有登记即可执行，参数结构由服务端负责。
+  if (parseMcpToolName(name) !== null) {
+    const spec = specOf(name);
+    if (spec === undefined) throw new ModelIntentError(`外部工具未登记策略：${name}`);
+    return {
+      intent: { scene: spec.scene, tool: name, slots: raw as IntentSlots, missing: [], confidence: 0.9, reason: "模型调用外部工具" },
+      droppedSlots: [],
+    };
+  }
+
+  const contract = TOOL_CONTRACTS[name];
+  if (contract === undefined) {
+    throw new ModelIntentError(`模型调用了未登记的工具：${name}`);
+  }
+  const spec = specOf(name);
+  if (spec === undefined) {
+    throw new ModelIntentError(`工具缺少策略定义：${name}`);
   }
 
   const slots: IntentSlots = {};

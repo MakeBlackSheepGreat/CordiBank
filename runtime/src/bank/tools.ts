@@ -1,5 +1,5 @@
 import { SEED_NOW, yuan } from "./data.ts";
-import type { BankState, Bill, Cents, Card, ToolResult } from "./types.ts";
+import type { BankState, Bill, Cents, Card, IntentSlots, ToolResult } from "./types.ts";
 
 /** 银行系统的「现在」：与合成数据同基准，保证统计口径稳定可复现。 */
 function bankNow(): Date {
@@ -399,19 +399,111 @@ export function lockBirthdayFunds(state: BankState, amountCents: Cents, purpose:
   };
 }
 
+/** 赎回持仓：按产品赎回，金额缺省为全部。回款按本金结算，演示不计收益。 */
+export function redeemWealth(state: BankState, productId: string | undefined, amountCents: Cents | undefined): ToolResult {
+  const positions = productId === undefined
+    ? state.holdings
+    : state.holdings.filter((item) => item.productId === productId);
+  if (positions.length === 0) {
+    return fail("wealth_redeem", productId === undefined ? "当前没有持仓" : `没有该产品的持仓：${productId}`);
+  }
+  const total = positions.reduce((sum, item) => sum + item.amountCents, 0);
+  const amount = amountCents ?? total;
+  if (amount <= 0) return fail("wealth_redeem", "赎回金额必须大于零");
+  if (amount > total) return fail("wealth_redeem", `可赎回金额为 ${yuan(total)} 元`);
+
+  let remaining = amount;
+  for (const position of positions) {
+    if (remaining <= 0) break;
+    const take = Math.min(position.amountCents, remaining);
+    position.amountCents -= take;
+    remaining -= take;
+  }
+  state.holdings = state.holdings.filter((item) => item.amountCents > 0);
+  state.account.balance += amount;
+  state.account.available += amount;
+  return {
+    ok: true,
+    tool: "wealth_redeem",
+    message: `已赎回 ${yuan(amount)} 元，资金已回到活期账户`,
+    data: { amountCents: amount, remainingCents: total - amount, productId: productId ?? "all" },
+  };
+}
+
+/** 续费提醒：列出 30 天内将要扣费的订阅，只读。 */
+export function subscriptionReminder(state: BankState, withinDays = 30): ToolResult {
+  const now = bankNow().getTime();
+  const horizon = now + withinDays * 86400000;
+  const upcoming = state.subscriptions
+    .filter((item) => item.autoRenew)
+    .map((item) => ({ ...item, at: Date.parse(item.nextChargeAt) }))
+    .filter((item) => Number.isFinite(item.at) && item.at >= now && item.at <= horizon)
+    .sort((a, b) => a.at - b.at);
+  const total = upcoming.reduce((sum, item) => sum + item.amountCents, 0);
+  const detail = upcoming
+    .map((item) => `${item.name} ${yuan(item.amountCents)} 元于 ${item.nextChargeAt.slice(0, 10)} 扣费`)
+    .join("；");
+  return {
+    ok: true,
+    tool: "subscription_reminder",
+    message: upcoming.length === 0
+      ? `未来 ${withinDays} 天没有待扣费订阅`
+      : `未来 ${withinDays} 天有 ${upcoming.length} 笔订阅待扣费，合计 ${yuan(total)} 元。${detail}`,
+    data: {
+      withinDays,
+      totalCents: total,
+      items: upcoming.map((item) => ({ id: item.id, name: item.name, amountCents: item.amountCents, nextChargeAt: item.nextChargeAt })),
+    },
+  };
+}
+
+/** 礼遇商家目录：演示数据，价格固定。 */
+const GIFT_CATALOG: Readonly<Record<string, { label: string; priceCents: Cents }>> = {
+  cake: { label: "生日蛋糕（6 寸）", priceCents: 16800 },
+  flower: { label: "鲜花花束（混合）", priceCents: 12800 },
+  both: { label: "蛋糕加鲜花组合", priceCents: 26800 },
+};
+
+/** 生日礼遇下单：优先扣锁定资金，不足部分从可用余额补。可撤销。 */
+export function bookGift(state: BankState, gift: string, purpose: string | undefined): ToolResult {
+  const item = GIFT_CATALOG[gift];
+  if (item === undefined) {
+    return fail("birthday_book", `不支持的礼遇类型：${gift}，可选 cake、flower、both`);
+  }
+  const lock = state.lockedFunds.find((fund) => fund.status === "locked");
+  const locked = lock === undefined ? 0 : lock.amountCents;
+  const fromBalance = Math.max(0, item.priceCents - locked);
+  if (fromBalance > state.account.available) {
+    return fail("birthday_book", `可用余额不足，还需 ${yuan(fromBalance - state.account.available)} 元`);
+  }
+  const usedLocked = Math.min(locked, item.priceCents);
+  if (lock !== undefined && usedLocked > 0) {
+    lock.amountCents -= usedLocked;
+    lock.status = lock.amountCents === 0 ? "spent" : "locked";
+  }
+  state.account.available -= fromBalance;
+  state.account.balance -= fromBalance;
+  const deliverAt = new Date(bankNow().getTime() + 2 * 86400000).toISOString().slice(0, 10);
+  return {
+    ok: true,
+    tool: "birthday_book",
+    message: `已预订${item.label}，${yuan(item.priceCents)} 元，其中锁定资金抵扣 ${yuan(usedLocked)} 元，送达日期 ${deliverAt}`,
+    data: {
+      gift,
+      label: item.label,
+      priceCents: item.priceCents,
+      usedLockedCents: usedLocked,
+      fromBalanceCents: fromBalance,
+      deliverAt,
+      purpose: purpose ?? "生日礼遇",
+      cancelable: true,
+    },
+  };
+}
+
 export interface ExecuteInput {
   tool: string;
-  slots: {
-    payee?: string;
-    amountCents?: Cents;
-    cardId?: string;
-    productId?: string;
-    subscriptionName?: string;
-    purpose?: string;
-    period?: string;
-    at?: string;
-    shares?: number;
-  };
+  slots: IntentSlots;
   state: BankState;
 }
 
@@ -455,6 +547,12 @@ export function executeTool(input: ExecuteInput): ToolResult {
       return fail("freeze_account", "账户冻结需要柜面或人脸强验证，当前通道不执行");
     case "birthday_lock":
       return lockBirthdayFunds(state, slots.amountCents ?? 100000, slots.purpose);
+    case "wealth_redeem":
+      return redeemWealth(state, slots.productId, slots.amountCents);
+    case "subscription_reminder":
+      return subscriptionReminder(state);
+    case "birthday_book":
+      return bookGift(state, slots.gift ?? "both", slots.purpose);
     default:
       return fail(tool, `工具不在白名单：${tool}`);
   }

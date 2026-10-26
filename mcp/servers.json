@@ -6,7 +6,9 @@
       "transport": "stdio",
       "command": "node",
       "args": ["__MCP_DIR__/fx-server.mjs"],
-      "timeoutMs": 15000
+      "timeoutMs": 15000,
+      "risk": "read",
+      "scene": "transfer"
     },
     {
       "id": "bank-risk",
@@ -14,7 +16,9 @@
       "transport": "stdio",
       "command": "node",
       "args": ["__MCP_DIR__/risk-server.mjs"],
-      "timeoutMs": 15000
+      "timeoutMs": 15000,
+      "risk": "read",
+      "scene": "transfer"
     },
     {
       "id": "bank-catalog",
@@ -22,7 +26,24 @@
       "transport": "stdio",
       "command": "node",
       "args": ["__MCP_DIR__/catalog-server.mjs"],
-      "timeoutMs": 15000
+      "timeoutMs": 15000,
+      "risk": "read",
+      "scene": "wealth"
+    },
+    {
+      "id": "bank-gift",
+      "name": "生日礼遇预订服务",
+      "transport": "stdio",
+      "command": "node",
+      "args": ["__MCP_DIR__/gift-server.mjs"],
+      "timeoutMs": 15000,
+      "scene": "cross",
+      "tools": {
+        "list_gifts": "read",
+        "get_order": "read",
+        "place_order": "write",
+        "cancel_order": "write"
+      }
     }
   ]
 }

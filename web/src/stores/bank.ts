@@ -81,6 +81,7 @@ export const useBank = defineStore('bank', () => {
   const fxResult = ref('')
   const fxBusy = ref(false)
   const modelStatus = ref<ModelStatus | null>(null)
+  const toolSummary = ref<{ total: number; builtin: number; mcp: number } | null>(null)
 
   const toolLabels = computed<Record<string, string>>(() => {
     const map: Record<string, string> = {}
@@ -144,6 +145,14 @@ export const useBank = defineStore('bank', () => {
     if (tools !== null) mcpTools.value = tools.tools
     const status = await call<ModelStatus>('bank.agent.model', [])
     if (status !== null) modelStatus.value = status
+    const inventory = await call<{ total: number; items: Array<{ name: string; source: string }> }>('bank.agent.tools', [])
+    if (inventory !== null) {
+      toolSummary.value = {
+        total: inventory.total,
+        builtin: inventory.items.filter((item) => item.source === 'builtin').length,
+        mcp: inventory.items.filter((item) => item.source === 'mcp').length,
+      }
+    }
   }
 
   /** 汇率换算：调用银行汇率 MCP，结果只展示服务返回的数字。 */
@@ -257,6 +266,7 @@ export const useBank = defineStore('bank', () => {
     fxResult,
     fxBusy,
     modelStatus,
+    toolSummary,
     toolLabels,
     lastAgent,
     balanceText,

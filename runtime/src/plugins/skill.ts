@@ -193,12 +193,23 @@ function scoreSkill(skill: Skill, query: string): { skill: Skill; score: number;
   return { skill, score, excerpt };
 }
 
+/** 扫描技能目录：目录不存在返回空数组，按 id 排序。供插件与模型工具共用。 */
+export function readSkillDirectory(skillsDir: string): Skill[] {
+  if (!existsSync(skillsDir)) return [];
+  return readdirSync(skillsDir, { withFileTypes: true })
+    .filter((entry) => entry.name.toLowerCase().endsWith(".md"))
+    .map((entry) => path.join(skillsDir, entry.name))
+    .filter((absolute) => statSync(absolute).isFile())
+    .map((absolute) => readSkill(path.basename(absolute, path.extname(absolute)), absolute))
+    .sort((a, b) => a.id.localeCompare(b.id));
+}
+
 /**
- * 技能能力 "skill"：把科研流程与配方做成可按需加载的技能文件。
+ * 技能能力 "skill"：把业务流程与配方做成可按需加载的技能文件。
  *
  * - 技能存放在 skillsDir，一个技能一个 .md 文件，前置元信息记录 name/description/tags。
  * - id 由 name 生成安全 slug，读写删都限制在技能目录内，符号链接逃逸与越界按 ACCESS_DENIED 拒绝。
- * - 目录不存在视为空技能库，列表返回空数组；不预置任何示例技能。
+ * - 目录不存在视为空技能库，列表返回空数组。
  */
 export function createSkillPlugin(cfg: RuntimeConfig): CapabilityPlugin {
   const skillsDir = path.resolve(cfg.skillsDir);
@@ -231,15 +242,7 @@ export function createSkillPlugin(cfg: RuntimeConfig): CapabilityPlugin {
   };
 
   /** 扫描技能目录：目录不存在返回空数组，按 id 排序。 */
-  const listSkills = (): Skill[] => {
-    if (!existsSync(skillsDir)) return [];
-    return readdirSync(skillsDir, { withFileTypes: true })
-      .filter((entry) => entry.name.toLowerCase().endsWith(".md"))
-      .map((entry) => path.join(skillsDir, entry.name))
-      .filter((absolute) => statSync(absolute).isFile())
-      .map((absolute) => readSkill(path.basename(absolute, path.extname(absolute)), absolute))
-      .sort((a, b) => a.id.localeCompare(b.id));
-  };
+  const listSkills = (): Skill[] => readSkillDirectory(skillsDir);
 
   const provider: Provider = {
     /** 技能清单：目录不存在时为空列表。 */
