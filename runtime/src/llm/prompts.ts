@@ -1,3 +1,4 @@
+import { TOOL_SPECS } from "../bank/policy.ts";
 import { TOOL_CONTRACTS } from "../bank/tool-schema.ts";
 import type { ToolSchema } from "./types.ts";
 
@@ -46,9 +47,16 @@ export function buildToolSchema(contract: (typeof TOOL_CONTRACTS)[string]): Tool
   };
 }
 
-/** 意图解析用的工具集：全部业务工具加一个 unknown 兜底。 */
-export function buildIntentTools(): ToolSchema[] {
-  const tools = Object.values(TOOL_CONTRACTS).map(buildToolSchema);
+/** 意图解析用的工具集：可传入规则粗判的场景，只声明该场景的工具以缩小请求体。 */
+export function buildIntentTools(scene?: string): ToolSchema[] {
+  const allowed =
+    scene === undefined || scene === "unknown"
+      ? undefined
+      : new Set(TOOL_SPECS.filter((spec) => spec.scene === scene).map((spec) => spec.tool));
+  const contracts = Object.values(TOOL_CONTRACTS).filter(
+    (contract) => allowed === undefined || allowed.has(contract.tool),
+  );
+  const tools = (contracts.length === 0 ? Object.values(TOOL_CONTRACTS) : contracts).map(buildToolSchema);
   tools.push({
     type: "function",
     function: {

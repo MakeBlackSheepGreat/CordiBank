@@ -37,6 +37,8 @@ export interface BankAgentOptions {
   brain?: ModelBrain;
   /** 意图模式：hybrid 规则优先，model 全部走模型，rule 只用规则。 */
   intentMode?: "rule" | "hybrid" | "model";
+  /** 工具声明范围：scene 时按规则粗判的场景收窄声明，all 时全量声明。 */
+  toolScope?: "all" | "scene";
 }
 
 /** 银行智能体编排：守卫、解析、判定、确认、执行、审计六段式。 */
@@ -46,6 +48,7 @@ export class BankAgent {
   private readonly issuer: ConfirmIssuer;
   private readonly brain: ModelBrain | undefined;
   private readonly intentMode: "rule" | "hybrid" | "model";
+  private readonly toolScope: "all" | "scene";
   private readonly sessions = new Map<string, BankSession>();
   private readonly drafts = new Map<string, Draft>();
 
@@ -55,6 +58,7 @@ export class BankAgent {
     this.issuer = new ConfirmIssuer(options.storeDir);
     this.brain = options.brain;
     this.intentMode = options.intentMode ?? "hybrid";
+    this.toolScope = options.toolScope ?? "all";
   }
 
   /** 模型层状态：供界面与答辩展示，不暴露凭据。 */
@@ -374,7 +378,8 @@ export class BankAgent {
       this.intentMode === "model" || intent.scene === "unknown" || intent.confidence < MODEL_ESCALATE_BELOW;
     if (modelAllowed && modelNeeded) {
       try {
-        const result = await this.brain.interpret(verdict.sanitized);
+        const hint = this.toolScope === "scene" ? intent.scene : undefined;
+        const result = await this.brain.interpret(verdict.sanitized, hint);
         if (result.intent.scene !== "unknown") {
           intent = result.intent;
           intentSource = "model";

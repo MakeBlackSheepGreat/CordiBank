@@ -46,8 +46,8 @@ export class ModelBrain {
     return this.client.endpoint;
   }
 
-  /** 解析用户输入；模型未配置或返回不合约时抛错，由编排层降级。 */
-  async interpret(text: string): Promise<BrainResult> {
+  /** 解析用户输入；hint 为规则粗判的场景，用于缩小工具声明范围。 */
+  async interpret(text: string, hint?: string): Promise<BrainResult> {
     const state = this.loadState();
     const messages: ChatMessage[] = [
       { role: "system", content: INTENT_SYSTEM_PROMPT },
@@ -63,7 +63,7 @@ export class ModelBrain {
       },
     ];
     // 意图解析关掉思考模式：抽槽是确定性任务，reasoning token 属于纯浪费。
-    const reply = await this.client.chat(messages, buildIntentTools(), { toolChoice: "required", thinking: false });
+    const reply = await this.client.chat(messages, buildIntentTools(hint), { toolChoice: "required", thinking: false });
     const call = reply.toolCalls[0];
     if (call === undefined) {
       throw new ModelIntentError("模型没有给出工具调用");

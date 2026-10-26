@@ -13,6 +13,9 @@ store/
 # 界面验收截图
 shots/
 
+# 测试缓存
+.vitest-cache/
+
 # 日志与临时文件
 *.log
 

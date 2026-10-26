@@ -21,6 +21,14 @@ export interface RuntimeConfig {
   llm: LlmSettings;
   /** 意图解析模式：rule 只用规则，hybrid 规则优先模型兜底，model 全部走模型。 */
   llmIntentMode: "rule" | "hybrid" | "model";
+  /** 工具声明范围：all 全量声明（缓存最热），scene 按规则粗判场景收窄声明。 */
+  llmToolScope: "all" | "scene";
+}
+
+/** 工具声明范围；非法值回落到全量。 */
+export function resolveToolScope(raw?: string): "all" | "scene" {
+  const value = raw ?? process.env.LLM_TOOL_SCOPE ?? "all";
+  return value === "scene" ? "scene" : "all";
 }
 
 /** 解析意图模式；非法值回落到 hybrid。 */
@@ -95,6 +103,7 @@ export function loadConfig(overrides: Partial<RuntimeConfig> = {}): RuntimeConfi
     rpcPort: overrides.rpcPort ?? envPort(),
     llm: overrides.llm ?? resolveLlm(),
     llmIntentMode: overrides.llmIntentMode ?? resolveIntentMode(),
+    llmToolScope: overrides.llmToolScope ?? resolveToolScope(),
   };
 }
 

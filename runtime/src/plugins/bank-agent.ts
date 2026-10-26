@@ -28,7 +28,7 @@ export function createBankAgentPlugin(cfg: RuntimeConfig = loadConfig()): Capabi
     if (agent === null) {
       const store = new BankStore(cfg.storeDir);
       brain = new ModelBrain(new LlmClient(cfg.llm), () => store.load());
-      agent = new BankAgent({ storeDir: cfg.storeDir, brain, intentMode: cfg.llmIntentMode });
+      agent = new BankAgent({ storeDir: cfg.storeDir, brain, intentMode: cfg.llmIntentMode, toolScope: cfg.llmToolScope });
     }
     return agent;
   };

@@ -38,10 +38,13 @@ function row(label: string, prompt: number, completion: number, reasoning: numbe
 console.log(`模型：${settings.model}    system 提示词：${INTENT_SYSTEM_PROMPT.length} 字符`);
 
 const cold = await client.chat(messages, buildIntentTools(), { toolChoice: "required", thinking: false });
-row("意图解析·关思考（首次）", cold.usage.promptTokens, cold.usage.completionTokens, cold.usage.reasoningTokens, cold.usage.cacheHitTokens, cold.latencyMs);
+row("意图解析·全量工具·首次", cold.usage.promptTokens, cold.usage.completionTokens, cold.usage.reasoningTokens, cold.usage.cacheHitTokens, cold.latencyMs);
 
 const warm = await client.chat(messages, buildIntentTools(), { toolChoice: "required", thinking: false });
-row("意图解析·关思考（第二次）", warm.usage.promptTokens, warm.usage.completionTokens, warm.usage.reasoningTokens, warm.usage.cacheHitTokens, warm.latencyMs);
+row("意图解析·全量工具·第二次", warm.usage.promptTokens, warm.usage.completionTokens, warm.usage.reasoningTokens, warm.usage.cacheHitTokens, warm.latencyMs);
+
+const scoped = await client.chat(messages, buildIntentTools("transfer"), { toolChoice: "required", thinking: false });
+row("意图解析·分场景声明", scoped.usage.promptTokens, scoped.usage.completionTokens, scoped.usage.reasoningTokens, scoped.usage.cacheHitTokens, scoped.latencyMs);
 
 const thinking = await client.chat(messages, buildIntentTools(), { toolChoice: "auto", thinking: true });
 row("意图解析·开思考", thinking.usage.promptTokens, thinking.usage.completionTokens, thinking.usage.reasoningTokens, thinking.usage.cacheHitTokens, thinking.latencyMs);

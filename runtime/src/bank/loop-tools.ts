@@ -24,14 +24,19 @@ const WRITE_TOOLS: ReadonlySet<string> = new Set([
 /** 只读工具：循环内可直接执行，结果压缩后回填。 */
 export const READONLY_TOOLS: readonly string[] = Object.keys(TOOL_CONTRACTS).filter((name) => !WRITE_TOOLS.has(name));
 
-/** 循环可见的工具声明：只读与写操作都声明，写操作由循环识别后中断。 */
+/** 循环可见的工具声明：只读工具带完整参数，写工具只留名字与空参数。 */
 export function buildLoopTools(): LoopToolSpec[] {
-  return Object.values(TOOL_CONTRACTS).map((contract) => ({
-    name: contract.tool,
-    description: contract.summary,
-    parameters: buildToolSchema(contract).function.parameters,
-    write: WRITE_TOOLS.has(contract.tool),
-  }));
+  return Object.values(TOOL_CONTRACTS).map((contract) => {
+    const write = WRITE_TOOLS.has(contract.tool);
+    return {
+      name: contract.tool,
+      description: write ? `${contract.summary}（写操作，需用户确认，调用即中断本轮）` : contract.summary,
+      parameters: write
+        ? { type: "object", properties: {}, required: [], additionalProperties: true }
+        : buildToolSchema(contract).function.parameters,
+      write,
+    };
+  });
 }
 
 /** 参数收敛：只保留契约声明的键，类型越界即丢弃，防止模型塞入额外字段。 */
