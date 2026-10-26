@@ -68,6 +68,8 @@ export interface AuditInput {
   policyLevel: RiskLevel | "unknown";
   policyRules: string[];
   tokenDigest?: string;
+  intentSource?: "rule" | "model" | "none";
+  model?: { name: string; tokens: number; latencyMs: number };
   result: string;
 }
 
@@ -116,6 +118,8 @@ export class AuditChain {
       policyLevel: input.policyLevel,
       policyRules: input.policyRules,
       tokenDigest: input.tokenDigest ?? "",
+      intentSource: input.intentSource ?? "none",
+      model: input.model ?? null,
       result: input.result,
     });
     const record: AuditRecord = {
@@ -130,6 +134,8 @@ export class AuditChain {
       policyLevel: input.policyLevel,
       policyRules: input.policyRules,
       ...(input.tokenDigest === undefined ? {} : { tokenDigest: input.tokenDigest }),
+      intentSource: input.intentSource ?? "none",
+      ...(input.model === undefined ? {} : { model: input.model }),
       result: input.result,
       prevHash: this.lastHash,
       hash: hashOf(this.lastHash, payload),
@@ -170,6 +176,8 @@ export class AuditChain {
         policyLevel: record.policyLevel,
         policyRules: record.policyRules,
         tokenDigest: record.tokenDigest ?? "",
+        intentSource: record.intentSource ?? "none",
+        model: record.model ?? null,
         result: record.result,
       });
       const recomputed = hashOf(record.prevHash, payload);

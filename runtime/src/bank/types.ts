@@ -207,6 +207,10 @@ export interface AuditRecord {
   policyLevel: RiskLevel | "unknown";
   policyRules: string[];
   tokenDigest?: string;
+  /** 意图来源：规则、模型或未产生意图。 */
+  intentSource?: "rule" | "model" | "none";
+  /** 模型调用元信息，不含凭据。 */
+  model?: { name: string; tokens: number; latencyMs: number };
   result: string;
   prevHash: string;
   hash: string;
@@ -255,6 +259,8 @@ export interface ChatReply {
   suggestions: string[];
   /** 被截断或缺失时给出的人工追问项。 */
   missing: string[];
+  /** 意图来源：规则或模型，便于界面标注。 */
+  intentSource?: "rule" | "model";
 }
 
 export interface GuardVerdict {

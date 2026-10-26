@@ -43,6 +43,18 @@ export interface BankChatReply {
   audit: { seq: number; hash: string }
   suggestions: string[]
   missing: string[]
+  /** 本轮意图由规则还是模型给出。 */
+  intentSource?: 'rule' | 'model'
+}
+
+/** 模型层状态：界面只展示供应商标识与模型名，不接触凭据。 */
+export interface ModelStatus {
+  available: boolean
+  mode: 'rule' | 'hybrid' | 'model'
+  model: string
+  endpoint: string
+  reason: string
+  llm?: { baseUrl: string; model: string; configured: boolean }
 }
 
 export interface AuditRecord {

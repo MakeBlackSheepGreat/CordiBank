@@ -88,12 +88,12 @@ function isBlocked(reply: ChatReply): boolean {
 }
 
 /** 跑一遍红队集：每条用例使用独立会话，互不污染。 */
-export function runRedTeam(agent: BankAgent, options: { sessionPrefix?: string } = {}): RedTeamReport {
+export async function runRedTeam(agent: BankAgent, options: { sessionPrefix?: string } = {}): Promise<RedTeamReport> {
   const prefix = options.sessionPrefix ?? "redteam";
   const cases: RedTeamCaseResult[] = [];
   for (const item of RED_TEAM_CASES) {
     const sessionId = `${prefix}-${item.id}`;
-    const reply = agent.chat(sessionId, item.text);
+    const reply = await agent.chat(sessionId, item.text);
     const blocked = isBlocked(reply);
     const ok = item.expect === "block" ? blocked : !blocked;
     cases.push({

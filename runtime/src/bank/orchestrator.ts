@@ -3,6 +3,7 @@ import { ConfirmIssuer, digestOf } from "./confirm.ts";
 import { BankStore, yuan } from "./data.ts";
 import { checkPayeeOrigin, guardInput, guardOutput, scanUntrusted } from "./guard.ts";
 import { extractAmount, extractPayee, parseIntent } from "./intent.ts";
+import type { ModelBrain } from "./model-brain.ts";
 import { evaluate, specOf } from "./policy.ts";
 import { executeTool } from "./tools.ts";
 import type {
@@ -19,6 +20,9 @@ import type {
 
 const UNKNOWN_REPLY = "我没有听懂这个请求。可以试：查余额、分析这个月账单、转给小王 500 元、取消视频会员、锁卡、有哪些理财产品、帮我准备生日。";
 
+/** 规则置信度低于该值时，交给模型再解析一次。 */
+const MODEL_ESCALATE_BELOW = 0.7;
+
 /** 会话内的意图草稿：用于多轮补全缺失槽位。 */
 interface Draft {
   tool: string;
@@ -29,6 +33,10 @@ interface Draft {
 
 export interface BankAgentOptions {
   storeDir: string;
+  /** 模型大脑。缺省时系统只用规则解析，行为完全确定。 */
+  brain?: ModelBrain;
+  /** 意图模式：hybrid 规则优先，model 全部走模型，rule 只用规则。 */
+  intentMode?: "rule" | "hybrid" | "model";
 }
 
 /** 银行智能体编排：守卫、解析、判定、确认、执行、审计六段式。 */
@@ -36,6 +44,8 @@ export class BankAgent {
   private readonly store: BankStore;
   private readonly chain: AuditChain;
   private readonly issuer: ConfirmIssuer;
+  private readonly brain: ModelBrain | undefined;
+  private readonly intentMode: "rule" | "hybrid" | "model";
   private readonly sessions = new Map<string, BankSession>();
   private readonly drafts = new Map<string, Draft>();
 
@@ -43,6 +53,23 @@ export class BankAgent {
     this.store = new BankStore(options.storeDir);
     this.chain = new AuditChain(options.storeDir);
     this.issuer = new ConfirmIssuer(options.storeDir);
+    this.brain = options.brain;
+    this.intentMode = options.intentMode ?? "hybrid";
+  }
+
+  /** 模型层状态：供界面与答辩展示，不暴露凭据。 */
+  modelStatus(): Record<string, unknown> {
+    const mode = this.intentMode;
+    if (this.brain === undefined) {
+      return { available: false, reason: "未注入模型", mode, model: "", endpoint: "" };
+    }
+    return {
+      available: this.brain.available,
+      mode,
+      model: this.brain.model,
+      endpoint: this.brain.endpoint,
+      reason: this.brain.available ? "已配置" : "缺少密钥或地址",
+    };
   }
 
   private session(sessionId: string): BankSession {
@@ -67,6 +94,8 @@ export class BankAgent {
     level: RiskLevel | "unknown";
     rules: string[];
     tokenDigest?: string;
+    intentSource?: "rule" | "model" | "none";
+    model?: { name: string; tokens: number; latencyMs: number };
     result: string;
   }): { seq: number; hash: string } {
     const state = this.store.load();
@@ -80,6 +109,8 @@ export class BankAgent {
       policyLevel: input.level,
       policyRules: input.rules,
       ...(input.tokenDigest === undefined ? {} : { tokenDigest: input.tokenDigest }),
+      ...(input.intentSource === undefined ? {} : { intentSource: input.intentSource }),
+      ...(input.model === undefined ? {} : { model: input.model }),
       result: input.result,
     });
     return { seq: record.seq, hash: record.hash };
@@ -140,6 +171,7 @@ export class BankAgent {
     confirmation?: ChatReply["confirmation"];
     missing?: string[];
     suggestions?: string[];
+    intentSource?: "rule" | "model";
   }): ChatReply {
     const { session, text } = input;
     const finalText = guardOutput(maskSensitive(text));
@@ -152,6 +184,7 @@ export class BankAgent {
       decision: input.decision,
       ...(input.confirmation === undefined ? {} : { confirmation: input.confirmation }),
       ...(input.execution === undefined ? {} : { execution: input.execution }),
+      ...(input.intentSource === undefined ? {} : { intentSource: input.intentSource }),
       audit: input.audit,
       suggestions: input.suggestions ?? this.suggestionsFor(input.scene),
       missing: input.missing ?? [],
@@ -216,7 +249,7 @@ export class BankAgent {
     return `还需要确认：${missing.map((key) => labels[key] ?? key).join("、")}。`;
   }
 
-  chat(sessionId: string, raw: string): ChatReply {
+  async chat(sessionId: string, raw: string): Promise<ChatReply> {
     const state = this.store.load();
     const session = this.session(sessionId);
     const text = raw.trim();
@@ -318,6 +351,9 @@ export class BankAgent {
     if (session.pending !== undefined) session.pending = undefined;
     const draft = this.drafts.get(sessionId);
     let intent: Intent = parseIntent(verdict.sanitized, state);
+    let intentSource: "rule" | "model" = "rule";
+    let modelMeta: { name: string; tokens: number; latencyMs: number } | undefined;
+    let degradeNote = "";
     if (intent.scene === "unknown" && draft !== undefined) {
       const merged = this.mergeDraft(draft, verdict.sanitized, state);
       if (merged.missing.length < draft.missing.length) {
@@ -332,6 +368,25 @@ export class BankAgent {
       }
     }
 
+    // 规则不确定时交给模型补判。模型输出仍需通过契约校验与后续全部安全链。
+    const modelAllowed = this.brain !== undefined && this.brain.available && this.intentMode !== "rule";
+    const modelNeeded =
+      this.intentMode === "model" || intent.scene === "unknown" || intent.confidence < MODEL_ESCALATE_BELOW;
+    if (modelAllowed && modelNeeded) {
+      try {
+        const result = await this.brain.interpret(verdict.sanitized);
+        if (result.intent.scene !== "unknown") {
+          intent = result.intent;
+          intentSource = "model";
+          modelMeta = { name: result.meta.model, tokens: result.meta.tokens, latencyMs: result.meta.latencyMs };
+        } else {
+          degradeNote = "模型未能给出可执行意图";
+        }
+      } catch (error) {
+        degradeNote = `模型调用失败：${error instanceof Error ? error.message : String(error)}`;
+      }
+    }
+
     if (intent.scene === "unknown") {
       const decision: PolicyDecision = {
         level: "green",
@@ -341,7 +396,7 @@ export class BankAgent {
         requiresConfirm: false,
         blocked: false,
       };
-      const audit = this.audit({ sessionId, userText: text, tool: "unknown", params: {}, decision: "unmatched", level: "unknown", rules: ["intent-miss"], result: "未识别意图" });
+      const audit = this.audit({ sessionId, userText: text, tool: "unknown", params: {}, decision: "unmatched", level: "unknown", rules: ["intent-miss"], result: degradeNote === "" ? "未识别意图" : `未识别意图（${degradeNote}）` });
       return this.reply({ session, text: UNKNOWN_REPLY, scene: "unknown", decision, audit });
     }
 
@@ -366,9 +421,11 @@ export class BankAgent {
         decision: "need_slots",
         level: "unknown",
         rules: ["slot-missing"],
-        result: `缺失槽位：${intent.missing.join(",")}`,
+        intentSource,
+        ...(modelMeta === undefined ? {} : { model: modelMeta }),
+        result: `缺失槽位：${intent.missing.join(",")}${degradeNote === "" ? "" : `（${degradeNote}）`}`,
       });
-      return this.reply({ session, text: this.askFor(intent.missing), scene: intent.scene, decision, audit, missing: intent.missing });
+      return this.reply({ session, text: this.askFor(intent.missing), scene: intent.scene, decision, audit, missing: intent.missing, intentSource });
     }
 
     this.drafts.delete(sessionId);
@@ -387,6 +444,8 @@ export class BankAgent {
           decision: "blocked_untrusted_origin",
           level: "red",
           rules: ["payee-origin"],
+          intentSource,
+          ...(modelMeta === undefined ? {} : { model: modelMeta }),
           result: `拦截不可信来源：${origin.reason}`,
         });
         return this.reply({
@@ -395,6 +454,7 @@ export class BankAgent {
           scene: intent.scene,
           decision,
           audit,
+          intentSource,
         });
       }
     }
@@ -412,6 +472,8 @@ export class BankAgent {
         decision: "blocked_policy",
         level: "red",
         rules,
+        intentSource,
+        ...(modelMeta === undefined ? {} : { model: modelMeta }),
         result: decision.summary,
       });
       return this.reply({
@@ -420,6 +482,7 @@ export class BankAgent {
         scene: intent.scene,
         decision,
         audit,
+        intentSource,
       });
     }
 
@@ -448,6 +511,8 @@ export class BankAgent {
         decision: "pending_confirm",
         level: "yellow",
         rules,
+        intentSource,
+        ...(modelMeta === undefined ? {} : { model: modelMeta }),
         tokenDigest: ticket.digest,
         result: `等待用户确认：${preview}`,
       });
@@ -458,6 +523,7 @@ export class BankAgent {
         decision,
         confirmation: ticket,
         audit,
+        intentSource,
       });
     }
 
@@ -476,6 +542,8 @@ export class BankAgent {
       decision: execution.ok ? "auto_execute" : "executed_with_error",
       level: "green",
       rules,
+      intentSource,
+      ...(modelMeta === undefined ? {} : { model: modelMeta }),
       result: execution.ok ? execution.message : (execution.error ?? "执行失败"),
     });
     if (execution.ok) this.store.save(state);
@@ -486,6 +554,7 @@ export class BankAgent {
       decision,
       execution,
       audit,
+      intentSource,
     });
   }
 
@@ -534,7 +603,7 @@ export class BankAgent {
     return result.message;
   }
 
-  private confirmInternal(session: BankSession, text: string, state: BankState): ChatReply {
+  private async confirmInternal(session: BankSession, text: string, state: BankState): Promise<ChatReply> {
     const pending = session.pending;
     if (pending === undefined) {
       const decision = this.idleDecision("没有待确认的操作");
@@ -621,7 +690,7 @@ export class BankAgent {
   }
 
   /** 外部确认入口：允许传入被替换的参数，用于验证令牌绑定是否生效。 */
-  confirm(sessionId: string, token: string, override?: IntentSlots): ChatReply {
+  async confirm(sessionId: string, token: string, override?: IntentSlots): Promise<ChatReply> {
     const state = this.store.load();
     const session = this.session(sessionId);
     if (session.pending === undefined) {
@@ -662,7 +731,7 @@ export class BankAgent {
     return this.confirmInternal(session, "确认", state);
   }
 
-  cancel(sessionId: string): ChatReply {
+  async cancel(sessionId: string): Promise<ChatReply> {
     const state = this.store.load();
     const session = this.session(sessionId);
     const pending = session.pending;

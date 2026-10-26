@@ -6,6 +6,7 @@ import type {
   BankChatReply,
   BankMessage,
   BankStateView,
+  ModelStatus,
   RedTeamReport,
   ScenarioBundle,
   ToolSpec,
@@ -79,6 +80,7 @@ export const useBank = defineStore('bank', () => {
   const mcpTools = ref<Array<{ serverId: string; name: string; description: string }>>([])
   const fxResult = ref('')
   const fxBusy = ref(false)
+  const modelStatus = ref<ModelStatus | null>(null)
 
   const toolLabels = computed<Record<string, string>>(() => {
     const map: Record<string, string> = {}
@@ -140,6 +142,8 @@ export const useBank = defineStore('bank', () => {
     if (list !== null) mcpServers.value = list.servers
     const tools = await call<{ tools: Array<{ serverId: string; name: string; description: string }> }>('mcp.client.tools', [])
     if (tools !== null) mcpTools.value = tools.tools
+    const status = await call<ModelStatus>('bank.agent.model', [])
+    if (status !== null) modelStatus.value = status
   }
 
   /** 汇率换算：调用银行汇率 MCP，结果只展示服务返回的数字。 */
@@ -252,6 +256,7 @@ export const useBank = defineStore('bank', () => {
     mcpTools,
     fxResult,
     fxBusy,
+    modelStatus,
     toolLabels,
     lastAgent,
     balanceText,

@@ -1,6 +1,7 @@
 import path from "node:path";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import type { LlmSettings } from "./llm/types.ts";
 
 /** 运行时配置：从环境变量与仓库位置推导，缺省值面向本机开发。 */
 export interface RuntimeConfig {
@@ -16,10 +17,52 @@ export interface RuntimeConfig {
   mcpPresetFile: string;
   /** RPC 与静态托管端口。 */
   rpcPort: number;
+  /** 模型配置。缺省从环境变量解析，未配置时系统只用规则解析。 */
+  llm: LlmSettings;
+  /** 意图解析模式：rule 只用规则，hybrid 规则优先模型兜底，model 全部走模型。 */
+  llmIntentMode: "rule" | "hybrid" | "model";
+}
+
+/** 解析意图模式；非法值回落到 hybrid。 */
+export function resolveIntentMode(raw?: string): "rule" | "hybrid" | "model" {
+  const value = raw ?? process.env.LLM_INTENT_MODE ?? "hybrid";
+  return value === "rule" || value === "model" ? value : "hybrid";
 }
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "..", "..");
+
+/** 模型供应商缺省值：显式 LLM_* 优先，其次按已有密钥推断。 */
+export function resolveLlm(overrides: Partial<LlmSettings> = {}): LlmSettings {
+  const explicitKey = process.env.LLM_API_KEY ?? "";
+  const deepseekKey = process.env.DEEPSEEK_API_KEY ?? "";
+  const siliconKey = process.env.SILICONFLOW_API_KEY ?? "";
+
+  const baseUrl =
+    overrides.baseUrl ??
+    process.env.LLM_BASE_URL ??
+    (explicitKey !== ""
+      ? "https://api.deepseek.com/v1"
+      : deepseekKey !== ""
+        ? "https://api.deepseek.com/v1"
+        : siliconKey !== ""
+          ? "https://api.siliconflow.cn/v1"
+          : "");
+  const apiKey = overrides.apiKey ?? (explicitKey !== "" ? explicitKey : deepseekKey !== "" ? deepseekKey : siliconKey);
+  const model =
+    overrides.model ??
+    process.env.LLM_MODEL ??
+    (deepseekKey !== "" || explicitKey !== "" ? "deepseek-chat" : siliconKey !== "" ? "Qwen/Qwen2.5-7B-Instruct" : "");
+
+  return {
+    baseUrl,
+    apiKey,
+    model,
+    timeoutMs: overrides.timeoutMs ?? Number(process.env.LLM_TIMEOUT_MS ?? 20000),
+    temperature: overrides.temperature ?? Number(process.env.LLM_TEMPERATURE ?? 0),
+    maxTokens: overrides.maxTokens ?? Number(process.env.LLM_MAX_TOKENS ?? 400),
+  };
+}
 
 function envPort(): number {
   const raw = process.env.RUNTIME_PORT ?? process.env.CORDIBANK_PORT ?? "";
@@ -42,6 +85,8 @@ export function loadConfig(overrides: Partial<RuntimeConfig> = {}): RuntimeConfi
     webDistDir: overrides.webDistDir ?? path.join(repoRoot, "web", "dist"),
     mcpPresetFile: overrides.mcpPresetFile ?? path.join(repoRoot, "mcp", "servers.json"),
     rpcPort: overrides.rpcPort ?? envPort(),
+    llm: overrides.llm ?? resolveLlm(),
+    llmIntentMode: overrides.llmIntentMode ?? resolveIntentMode(),
   };
 }
 

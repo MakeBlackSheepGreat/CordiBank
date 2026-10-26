@@ -43,9 +43,15 @@ await page.getByRole('button', { name: '跑红队集' }).click()
 await page.waitForTimeout(2500)
 await page.screenshot({ path: `${OUT}/05-redteam.png` })
 
+await input.fill('我最近手头有点紧，想看看哪里能省一点')
+await input.press('Enter')
+await page.waitForTimeout(4000)
+await page.screenshot({ path: `${OUT}/06-model.png` })
+
 const body = await page.locator('body').innerText()
 console.log('页面含攻击拦截率：', body.includes('攻击拦截率'))
 console.log('页面含误拦截率：', body.includes('误拦截率'))
+console.log('页面出现模型解析标记：', body.includes('模型解析'))
 console.log('控制台错误数：', errors.length)
 if (errors.length > 0) console.log(errors.slice(0, 5).join('\n'))
 

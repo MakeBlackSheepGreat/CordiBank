@@ -64,6 +64,12 @@ function percent(value: number | undefined): string {
   return `${(value * 100).toFixed(0)}%`
 }
 
+function modeLabel(mode: string): string {
+  if (mode === 'model') return '模型优先'
+  if (mode === 'rule') return '仅规则'
+  return '规则优先'
+}
+
 watch(
   () => bank.messages.length,
   async () => {
@@ -112,6 +118,11 @@ async function onConvert(): Promise<void> {
       <div class="status">
         <span class="dot" :class="bank.online ? 'dot--on' : 'dot--off'" />
         {{ bank.online ? '运行时已连接' : '运行时未连接' }}
+        <span class="status__sep">·</span>
+        <span v-if="bank.modelStatus?.available" class="status__model">
+          {{ bank.modelStatus.model }} · {{ modeLabel(bank.modelStatus.mode) }}
+        </span>
+        <span v-else class="status__model status__model--off">规则模式</span>
       </div>
     </header>
 
@@ -139,6 +150,7 @@ async function onConvert(): Promise<void> {
                 {{ LEVEL_LABELS[message.reply.decision.level] }}色判定
               </span>
               <span class="tag tag--plain">{{ sceneLabel(message.reply.scene) }}</span>
+              <span v-if="message.reply.intentSource === 'model'" class="tag tag--model">模型解析</span>
               <span v-if="message.reply.execution" class="tag tag--plain">
                 {{ message.reply.execution.ok ? '已执行' : '未执行' }}
               </span>
@@ -574,6 +586,24 @@ async function onConvert(): Promise<void> {
 .tag--plain {
   border-color: var(--color-stroke-2);
   color: var(--color-ink-3);
+}
+
+.tag--model {
+  background: rgba(76, 127, 232, 0.12);
+  color: #3a63c4;
+  border-color: rgba(76, 127, 232, 0.28);
+}
+
+.status__sep {
+  color: var(--color-ink-5);
+}
+
+.status__model {
+  color: var(--color-ink-2);
+}
+
+.status__model--off {
+  color: var(--color-ink-4);
 }
 
 .is-green {
