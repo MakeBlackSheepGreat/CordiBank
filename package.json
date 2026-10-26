@@ -10,6 +10,7 @@
     "dev": "npm --prefix runtime run dev",
     "start": "npm --prefix runtime start",
     "mcp:check": "node mcp/selftest.mjs",
+    "bench:llm": "node runtime/scripts/bench-llm.mts",
     "shot": "npm --prefix web exec -- node bank-shot.mjs"
   }
 }

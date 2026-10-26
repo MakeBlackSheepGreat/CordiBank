@@ -1,5 +1,5 @@
 import { redactText } from "../core/redact.ts";
-import type { ChatMessage, LlmFailure, LlmSettings, ModelReply, ToolCall, ToolSchema } from "./types.ts";
+import type { ChatMessage, LlmFailure, LlmSettings, ModelReply, ToolCall, ToolSchema, Usage } from "./types.ts";
 
 /** 模型调用错误：kind 供上层决定降级策略。 */
 export class LlmError extends Error {
@@ -17,10 +17,19 @@ interface RawToolCall {
   function?: { name?: unknown; arguments?: unknown };
 }
 
+interface RawUsage {
+  prompt_tokens?: unknown;
+  completion_tokens?: unknown;
+  prompt_cache_hit_tokens?: unknown;
+  prompt_cache_miss_tokens?: unknown;
+  prompt_tokens_details?: { cached_tokens?: unknown };
+  completion_tokens_details?: { reasoning_tokens?: unknown };
+}
+
 interface RawResponse {
   model?: unknown;
   choices?: Array<{ message?: { content?: unknown; tool_calls?: unknown } }>;
-  usage?: { total_tokens?: unknown };
+  usage?: RawUsage;
 }
 
 /** 读取工具调用：字段缺失或类型不符一律跳过，不猜测。 */
@@ -35,6 +44,24 @@ function readToolCalls(raw: unknown): ToolCall[] {
     calls.push({ id, name, arguments: args });
   }
   return calls;
+}
+
+function asNumber(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+/** 读取用量：缓存命中兼容两种字段写法，取先出现的那个。 */
+function readUsage(raw: RawUsage | undefined): Usage {
+  const hit = asNumber(raw?.prompt_cache_hit_tokens ?? raw?.prompt_tokens_details?.cached_tokens);
+  const prompt = asNumber(raw?.prompt_tokens);
+  const miss = asNumber(raw?.prompt_cache_miss_tokens);
+  return {
+    promptTokens: prompt,
+    completionTokens: asNumber(raw?.completion_tokens),
+    cacheHitTokens: hit,
+    cacheMissTokens: miss > 0 ? miss : Math.max(0, prompt - hit),
+    reasoningTokens: asNumber(raw?.completion_tokens_details?.reasoning_tokens),
+  };
 }
 
 /** OpenAI 兼容客户端：只依赖 fetch，不引入 SDK。 */
@@ -57,8 +84,16 @@ export class LlmClient {
     return this.settings.baseUrl;
   }
 
+  get effort(): string {
+    return this.settings.effort;
+  }
+
   /** 一次对话请求；超时、HTTP 错误与协议异常都转成带分类的错误。 */
-  async chat(messages: ChatMessage[], tools: ToolSchema[] = []): Promise<ModelReply> {
+  async chat(
+    messages: ChatMessage[],
+    tools: ToolSchema[] = [],
+    overrides: { maxTokens?: number; effort?: LlmSettings["effort"]; toolChoice?: "auto" | "required"; thinking?: boolean } = {},
+  ): Promise<ModelReply> {
     if (!this.configured) {
       throw new LlmError("unconfigured", "模型未配置：缺少 baseUrl、apiKey 或 model");
     }
@@ -70,12 +105,17 @@ export class LlmClient {
         model: this.settings.model,
         messages,
         temperature: this.settings.temperature,
-        max_tokens: this.settings.maxTokens,
+        max_tokens: overrides.maxTokens ?? this.settings.maxTokens,
         stream: false,
+        effort: overrides.effort ?? this.settings.effort,
       };
+      // 关闭思考模式：结构化抽槽不需要推理，可省去全部 reasoning token。
+      if (!(overrides.thinking ?? this.settings.thinking)) {
+        body.thinking = { type: "disabled" };
+      }
       if (tools.length > 0) {
         body.tools = tools;
-        body.tool_choice = "auto";
+        body.tool_choice = overrides.toolChoice ?? "auto";
       }
       const response = await fetch(`${this.settings.baseUrl.replace(/\/+$/, "")}/chat/completions`, {
         method: "POST",
@@ -96,11 +136,10 @@ export class LlmClient {
         throw new LlmError("protocol", "模型响应缺少 choices");
       }
       const content = typeof choice.message?.content === "string" ? choice.message.content : "";
-      const tokens = typeof payload.usage?.total_tokens === "number" ? payload.usage.total_tokens : 0;
       return {
         content,
         toolCalls: readToolCalls(choice.message?.tool_calls),
-        tokens,
+        usage: readUsage(payload.usage),
         latencyMs: Date.now() - started,
         model: typeof payload.model === "string" ? payload.model : this.settings.model,
       };

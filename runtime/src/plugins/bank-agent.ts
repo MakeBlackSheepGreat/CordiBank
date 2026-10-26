@@ -21,22 +21,29 @@ function asString(value: unknown, name: string): string {
 /** 银行智能体能力：把编排层暴露为 bank.agent.* 服务。 */
 export function createBankAgentPlugin(cfg: RuntimeConfig = loadConfig()): CapabilityPlugin {
   let agent: BankAgent | null = null;
+  let brain: ModelBrain | null = null;
 
   /** 懒加载：首次调用才创建存储、密钥与模型客户端，避免无谓的文件副作用。 */
   const engine = (): BankAgent => {
     if (agent === null) {
       const store = new BankStore(cfg.storeDir);
-      const brain = new ModelBrain(new LlmClient(cfg.llm), () => store.load());
+      brain = new ModelBrain(new LlmClient(cfg.llm), () => store.load());
       agent = new BankAgent({ storeDir: cfg.storeDir, brain, intentMode: cfg.llmIntentMode });
     }
     return agent;
+  };
+
+  /** 模型大脑：未配置模型时返回空，调用方据此走规则。 */
+  const mind = (): ModelBrain | null => {
+    engine();
+    return brain;
   };
 
   return {
     name: "bank-agent",
     def: {
       service: "bank.agent",
-      methods: ["chat", "confirm", "cancel", "context", "audit", "scenarios", "intents", "redteam", "reset", "state", "model"],
+      methods: ["chat", "confirm", "cancel", "context", "audit", "scenarios", "intents", "redteam", "reset", "state", "model", "ask"],
       description: "银行 AI 智能体：意图理解（规则加模型）、三色判定、确认令牌、审计链与红队评测",
     },
     panel: {
@@ -50,6 +57,24 @@ export function createBankAgentPlugin(cfg: RuntimeConfig = loadConfig()): Capabi
         const sessionId = asString(params[0], "sessionId");
         const text = asString(params[1], "text");
         return await engine().chat(sessionId, text);
+      },
+      /**
+       * 对话式问答：模型可多轮调用只读工具取真实数据。
+       * 识别到写操作意图时转交编排层，由策略引擎与确认令牌处理。
+       */
+      async ask(...params: unknown[]): Promise<unknown> {
+        const sessionId = asString(params[0], "sessionId");
+        const text = asString(params[1], "text");
+        const model = mind();
+        if (model === null || !model.available) {
+          return { mode: "unavailable", reason: "模型未配置，请使用 bank.agent.chat" };
+        }
+        const loop = await model.converse(text);
+        if (loop.stopReason === "write-intent") {
+          const reply = await engine().chat(sessionId, text);
+          return { mode: "write", loop, chat: reply };
+        }
+        return { mode: "readonly", loop };
       },
       async confirm(...params: unknown[]): Promise<unknown> {
         const sessionId = asString(params[0], "sessionId");

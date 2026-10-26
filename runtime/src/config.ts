@@ -1,7 +1,7 @@
 import path from "node:path";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import type { LlmSettings } from "./llm/types.ts";
+import type { Effort, LlmSettings } from "./llm/types.ts";
 
 /** 运行时配置：从环境变量与仓库位置推导，缺省值面向本机开发。 */
 export interface RuntimeConfig {
@@ -61,7 +61,15 @@ export function resolveLlm(overrides: Partial<LlmSettings> = {}): LlmSettings {
     timeoutMs: overrides.timeoutMs ?? Number(process.env.LLM_TIMEOUT_MS ?? 20000),
     temperature: overrides.temperature ?? Number(process.env.LLM_TEMPERATURE ?? 0),
     maxTokens: overrides.maxTokens ?? Number(process.env.LLM_MAX_TOKENS ?? 400),
+    effort: overrides.effort ?? resolveEffort(),
+    thinking: overrides.thinking ?? (process.env.LLM_THINKING ?? "on") !== "off",
   };
+}
+
+/** 推理强度：抽槽用 low 省推理 token，多步对话可调到 high。 */
+function resolveEffort(): Effort {
+  const raw = process.env.LLM_EFFORT ?? "low";
+  return raw === "high" || raw === "max" ? raw : "low";
 }
 
 function envPort(): number {

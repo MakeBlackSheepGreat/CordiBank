@@ -61,6 +61,31 @@
 
 依赖零新增，直接用 `fetch` 调用 OpenAI 兼容接口，支持 DeepSeek、硅基流动等供应商。
 
+## 模型成本控制
+
+意图理解不需要长提示词，也不需要思考链。三项机制把单次解析压到有效 143 token。
+
+| 机制 | 做法 | 效果 |
+|---|---|---|
+| 工具声明代替自然语言 | 工具清单走请求体 `tools`，参数由 JSON Schema 承载 | 系统提示词从 1971 字符降到 184 字符，降 91% |
+| 关闭思考模式 | 抽槽请求带 `thinking: {type:"disabled"}` | reasoning token 归零，输出 token 减 33%，耗时减 40% |
+| 前缀缓存 | 系统提示词与工具声明固定不变，动态上下文放在用户消息里 | 命中 1792 / 1935 prompt token，命中率 93% |
+
+实测数据由 `npm run bench:llm` 复现，模型为 `deepseek-flash`。
+
+| 场景 | prompt | completion | reasoning | 缓存命中 | 耗时 |
+|---|---|---|---|---|---|
+| 意图解析·关思考（首次） | 1935 | 52 | 0 | 1792 | 1046ms |
+| 意图解析·关思考（第二次） | 1935 | 52 | 0 | 1792 | 810ms |
+| 意图解析·开思考 | 1955 | 78 | 20 | 0 | 1752ms |
+| 循环·只读问答（2 次请求） | 3806 | 93 | 16 | 3456 | — |
+
+缓存命中的 token 按未命中价格的十分之一计费，真实成本按未命中部分算：单次解析约 143 token。
+
+关闭思考有个前提：DeepSeek 的思考模式不接受 `tool_choice: required`，两者必须一起用。这也是意图解析能强制模型走工具调用的原因。
+
+Agent 循环默认保留思考，多步推理需要它。只读问答场景可以把 `thinking` 关掉进一步省钱。
+
 ## 安全设计
 
 三色判定的维度与规则如下，全部在代码层执行，模型无法绕过。
@@ -127,7 +152,10 @@ npm run mcp:check
 | 指标 | 实测值 | 复现方式 |
 |---|---|---|
 | 单元与集成测试 | 47 项全部通过 | `npm test` |
-| 真实模型调用 | 5 项全部通过，单轮 0.7 至 1.3 秒 | `tests/model-live.test.ts` |
+| 真实模型调用 | 5 项全部通过，单轮 0.6 至 0.9 秒 | `tests/model-live.test.ts` |
+| Agent 循环 | 9 项全部通过，含真实多轮工具调用与缓存命中 | `tests/agent-loop.test.ts` |
+| 循环成本 | 2 次请求累计 3806 prompt，命中 3456，命中率 91% | `npm run bench:llm` |
+| 提示词体积 | 系统提示词 1971 字符降至 184 字符 | 同上 |
 | 模型输出契约 | 9 项全部通过，越权工具与越界金额被拒 | `tests/model-contract.test.ts` |
 | 模型不服从 | 4 项全部通过，模型被诱导也改不了执行结果 | `tests/model-guard.test.ts` |
 | 攻击拦截率 | 100%（28 条攻击用例） | 控制台「跑红队集」 |
@@ -157,10 +185,14 @@ npm run start
 ```powershell
 $env:LLM_API_KEY="你的密钥"
 $env:LLM_BASE_URL="https://api.deepseek.com/v1"
-$env:LLM_MODEL="deepseek-chat"
+$env:LLM_MODEL="deepseek-flash"
 $env:LLM_INTENT_MODE="hybrid"
+$env:LLM_EFFORT="low"
+$env:LLM_THINKING="on"
 npm run start
 ```
+
+`LLM_THINKING=off` 关闭全局思考模式，进一步降低推理开销。意图解析始终关闭思考，与全局设置无关。
 
 已有 `DEEPSEEK_API_KEY` 或 `SILICONFLOW_API_KEY` 时无需再配，程序按密钥自动推断供应商与模型。
 
@@ -209,10 +241,11 @@ runtime/src/bank/          银行业务域
 └─ redteam.ts              40 条红队用例与统计
 
 runtime/src/core/          错误码与密钥脱敏
-runtime/src/llm/           OpenAI 兼容客户端、系统提示词、模型类型
+runtime/src/llm/           OpenAI 兼容客户端、Agent 循环、提示词与工具声明
 runtime/src/capabilities/  能力契约、注册表、内置登记
 runtime/src/plugins/       银行智能体、MCP 客户端、技能库
 runtime/src/server.ts      RPC 与静态托管
+runtime/scripts/           用量基准脚本
 runtime/tests/             自动化测试
 
 mcp/                       银行外部服务（MCP）
@@ -238,6 +271,7 @@ web/src/stores/bank.ts     控制台状态编排
 | `bank.agent.state` | `[]` | 账户、卡片、订阅、产品与策略 |
 | `bank.agent.reset` | `[]` | 重置合成数据，审计链只追加 |
 | `bank.agent.model` | `[]` | 模型层状态：供应商、模型名、模式、可用性 |
+| `bank.agent.ask` | `[sessionId, text]` | 对话式问答：模型多轮调用只读工具，写意图转交编排层 |
 | `mcp.client.list` | `[]` | 已配置的 MCP 服务器 |
 | `mcp.client.add` | `[{ id, name, transport, command?, url? }]` | 新增服务器 |
 | `mcp.client.remove` | `[serverId]` | 移除服务器 |

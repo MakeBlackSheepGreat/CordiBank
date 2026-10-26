@@ -38,7 +38,10 @@ interface ValidatedSlot {
 }
 
 /** 单个槽位校验：类型、枚举、范围、长度逐项检查，不合格即丢弃。 */
-function validateSlot(spec: { kind: string; values?: readonly string[]; min?: number; max?: number; maxLength?: number }, raw: unknown): ValidatedSlot {
+export function validateSlotValue(
+  spec: { kind: string; values?: readonly string[]; min?: number; max?: number; maxLength?: number },
+  raw: unknown,
+): ValidatedSlot {
   if (spec.kind === "integer") {
     if (typeof raw !== "number" || !Number.isInteger(raw)) return { value: undefined, dropped: true };
     if (spec.min !== undefined && raw < spec.min) return { value: undefined, dropped: true };
@@ -108,7 +111,7 @@ export function toIntent(raw: string, options: ParseOptions = {}): ParsedModelIn
       droppedSlots.push(name);
       continue;
     }
-    const checked = validateSlot(slotSpec, value);
+    const checked = validateSlotValue(slotSpec, value);
     if (checked.dropped) {
       droppedSlots.push(name);
       continue;
@@ -147,4 +150,66 @@ export function requireInteger(value: unknown, name: string): number {
     throw new RuntimeError("INVALID_INPUT", `${name} 必须是整数`);
   }
   return value;
+}
+
+/**
+ * 从原生工具调用构造意图。
+ * 参数按契约逐项校验，多余字段丢弃，缺必填项记为待追问。
+ */
+export function toIntentFromCall(name: string, argsJson: string): ParsedModelIntent {
+  if (name === "unknown") {
+    return {
+      intent: { scene: "unknown", tool: "unknown", slots: {}, missing: [], confidence: 0.2, reason: "模型判定无法识别" },
+      droppedSlots: [],
+    };
+  }
+  const contract = TOOL_CONTRACTS[name];
+  if (contract === undefined) {
+    throw new ModelIntentError(`模型调用了未登记的工具：${name}`);
+  }
+  const spec = specOf(name);
+  if (spec === undefined) {
+    throw new ModelIntentError(`工具缺少策略定义：${name}`);
+  }
+  let raw: Record<string, unknown> = {};
+  try {
+    const parsed = JSON.parse(argsJson === "" ? "{}" : argsJson) as unknown;
+    if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+      raw = parsed as Record<string, unknown>;
+    }
+  } catch {
+    throw new ModelIntentError("工具参数不是合法 JSON");
+  }
+
+  const slots: IntentSlots = {};
+  const droppedSlots: string[] = [];
+  const missing: string[] = [];
+  for (const [slotName, value] of Object.entries(raw)) {
+    const slotSpec = contract.slots[slotName as keyof IntentSlots];
+    if (slotSpec === undefined) {
+      droppedSlots.push(slotName);
+      continue;
+    }
+    const checked = validateSlotValue(slotSpec, value);
+    if (checked.dropped) {
+      droppedSlots.push(slotName);
+      continue;
+    }
+    slots[slotName as keyof IntentSlots] = checked.value as never;
+  }
+  for (const [slotName, slotSpec] of Object.entries(contract.slots)) {
+    if (slotSpec.required && slots[slotName as keyof IntentSlots] === undefined) missing.push(slotName);
+  }
+
+  return {
+    intent: {
+      scene: spec.scene,
+      tool: name,
+      slots,
+      missing,
+      confidence: 0.9,
+      reason: "模型原生工具调用",
+    },
+    droppedSlots,
+  };
 }
