@@ -96,7 +96,7 @@ async function onConvert(): Promise<void> {
       <div class="brand">
         <span class="brand__mark">CordiBank</span>
         <span class="brand__name">银行智能体</span>
-        <span class="brand__sub">蜂群执行内核</span>
+        <span class="brand__sub">对话即办理</span>
       </div>
       <div class="account">
         <div class="account__row">
