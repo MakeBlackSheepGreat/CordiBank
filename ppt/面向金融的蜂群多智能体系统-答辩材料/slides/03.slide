@@ -3,17 +3,17 @@
   <Text style={{ color: "#F7F4EC", fontSize: 34, fontWeight: 700, marginTop: 12 }}>一个大脑包办所有事，代价落在三处</Text>
   <Box style={{ display: "flex", flexDirection: "row", gap: 28, marginTop: 38 }}>
     <Box style={{ flex: 1, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.35)", borderRadius: 12, padding: 26, height: 300 }}>
-      <Text style={{ color: "#EF4444", fontSize: 40, fontWeight: 700, fontFamily: "JetBrains Mono, monospace" }}>01</Text>
+      <Text style={{ color: "#EF4444", fontSize: 40, fontWeight: 700, fontFamily: "Consolas, monospace" }}>01</Text>
       <Text style={{ color: "#F7F4EC", fontSize: 24, fontWeight: 600, marginTop: 14 }}>判不准</Text>
       <Text style={{ color: "#9CA3AF", fontSize: 17, lineHeight: 1.75, marginTop: 10 }}>同一个模型既要想「用户要什么」，又要想「这事能不能办」。两个目标写在一段提示词里，互相干扰，结果是该拦的没拦，该放的没放。</Text>
     </Box>
     <Box style={{ flex: 1, background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 12, padding: 26, height: 300 }}>
-      <Text style={{ color: "#F59E0B", fontSize: 40, fontWeight: 700, fontFamily: "JetBrains Mono, monospace" }}>02</Text>
+      <Text style={{ color: "#F59E0B", fontSize: 40, fontWeight: 700, fontFamily: "Consolas, monospace" }}>02</Text>
       <Text style={{ color: "#F7F4EC", fontSize: 24, fontWeight: 600, marginTop: 14 }}>说不清</Text>
       <Text style={{ color: "#9CA3AF", fontSize: 17, lineHeight: 1.75, marginTop: 10 }}>出错时只能看到一个结论，不知道是哪一步出的问题。评委问「为什么判黄」，答不上具体规则与阈值，等于没有判定。</Text>
     </Box>
     <Box style={{ flex: 1, background: "rgba(107,114,128,0.10)", border: "1px solid rgba(107,114,128,0.35)", borderRadius: 12, padding: 26, height: 300 }}>
-      <Text style={{ color: "#9CA3AF", fontSize: 40, fontWeight: 700, fontFamily: "JetBrains Mono, monospace" }}>03</Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 40, fontWeight: 700, fontFamily: "Consolas, monospace" }}>03</Text>
       <Text style={{ color: "#F7F4EC", fontSize: 24, fontWeight: 600, marginTop: 14 }}>改不动</Text>
       <Text style={{ color: "#9CA3AF", fontSize: 17, lineHeight: 1.75, marginTop: 10 }}>要加一条风控规则，得动主流程；要加一句合规校验，还得动主流程。改一处牵全身，团队里没人敢动那段代码。</Text>
     </Box>

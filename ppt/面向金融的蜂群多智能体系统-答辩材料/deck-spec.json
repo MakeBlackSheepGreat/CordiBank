@@ -1,0 +1,1860 @@
+{
+  "version": "1.0",
+  "content_policy": "1.0",
+  "title": "面向金融的蜂群多智能体系统-答辩材料",
+  "content_approved": true,
+  "content_version": "2026-10-28",
+  "content_authorization": "用户指令：按照比赛的要求，除了视频，全部帮我做好",
+  "canvas": {
+    "width": 1280,
+    "height": 720
+  },
+  "style": {
+    "decision": "locked-reference",
+    "choice": "深色三色语义（项目自有设计宪法，见 ppt 目录 DESIGN.md）",
+    "authorization": "沿用已通过 slidep 逐页视觉检查的既有设计，不重新选型",
+    "visual_spec": "深色三色语义。背景 #0B1220，正文 #F7F4EC，次要文字 #9CA3AF。绿色 #22C55E 表示直连与已通过，黄色 #F59E0B 表示需确认，红色 #EF4444 表示拦截与风险，蓝色 #3B82F6 表示仲裁与信息类强调。巨型数字与字段名用等宽字体，标题 34px 加粗，正文 15 至 17px。"
+  },
+  "slides": [
+    {
+      "id": "s01",
+      "page_number": 1,
+      "role": "cover",
+      "title": "面向金融的蜂群多智能体系统",
+      "core_message": "五个角色分工完成一次银行事务，从听懂到办完全程可追溯",
+      "key_points": [
+        "2026 FINTECHATHON · 人工智能赛道",
+        "意图官",
+        "执行官",
+        "代码、文档、部署说明、测试用例",
+        "CordiBank 蜂群项目组"
+      ],
+      "source_refs": [
+        "README.md"
+      ],
+      "explanation": "封面按作用处理，只立住项目名与一句话价值，不承担论证。",
+      "visual_brief": "项目名 66px 居中偏左，下方绿色色条与一句话副标；中部两排角色卡横排铺满；底部四栏标注团队、规模、交付、时间。",
+      "image_file": "pages/001.png",
+      "image_status": "approved",
+      "speaker_notes": "开场一句话：我们做了一个银行智能体，它不会乱动钱，出了事说得清。",
+      "elements": [
+        {
+          "id": "e01-title",
+          "kind": "text",
+          "role": "title",
+          "native_intent": "native",
+          "source_ref": "s01.key_points[0]",
+          "confirmation_status": "confirmed",
+          "text": "面向金融的蜂群多智能体系统"
+        },
+        {
+          "id": "e01-subtitle",
+          "kind": "text",
+          "role": "subtitle",
+          "native_intent": "native",
+          "source_ref": "s01.core_message",
+          "confirmation_status": "confirmed",
+          "text": "五个角色分工完成一次银行事务，从听懂到办完全程可追溯"
+        },
+        {
+          "id": "e01-roles",
+          "kind": "text",
+          "role": "body",
+          "native_intent": "native",
+          "source_ref": "s01.key_points[1]",
+          "confirmation_status": "confirmed",
+          "text": "意图官"
+        },
+        {
+          "id": "e01-meta",
+          "kind": "text",
+          "role": "caption",
+          "native_intent": "native",
+          "source_ref": "s01.key_points[2]",
+          "confirmation_status": "confirmed",
+          "text": "CordiBank 蜂群项目组"
+        }
+      ],
+      "display": {
+        "coverage": [
+          {
+            "claim": "core_message",
+            "element_ids": [
+              "e01-subtitle"
+            ]
+          },
+          {
+            "claim": "explanation",
+            "element_ids": [
+              "e01-meta"
+            ]
+          },
+          {
+            "claim": "source_refs/0",
+            "element_ids": [
+              "e01-meta"
+            ]
+          },
+          {
+            "claim": "key_points/0",
+            "element_ids": [
+              "e01-title"
+            ]
+          },
+          {
+            "claim": "key_points/1",
+            "element_ids": [
+              "e01-roles"
+            ]
+          },
+          {
+            "claim": "key_points/2",
+            "element_ids": [
+              "e01-subtitle"
+            ]
+          },
+          {
+            "claim": "key_points/3",
+            "element_ids": [
+              "e01-title"
+            ]
+          },
+          {
+            "claim": "key_points/4",
+            "element_ids": [
+              "e01-meta"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "s02",
+      "page_number": 2,
+      "role": "data-evidence",
+      "title": "三个数字说明这套系统做到了什么",
+      "core_message": "规模、覆盖与安全三项均可复现",
+      "key_points": [
+        "单元、集成、蜂群协同、真实模型四层。红队四十条用例覆盖直接注入、间接注入、越权与正常请求。",
+        "四个外部服务提供十三个工具，经同一张注册表并入模型工具集。",
+        "四类注入特征全部命中，正常请求误拦为零。不可逆操作百分之百判红，不给确认通道。",
+        "六个赛题场景全部覆盖，另有四个外部服务提供十三个工具，经同一张注册表并入模型工具集。"
+      ],
+      "source_refs": [
+        "runtime 测试套件",
+        "mcp/selftest.mjs",
+        "docs/04-部署说明.md 第八节"
+      ],
+      "explanation": "三个数字分别回答做得实不实、做得全不全、安不安全，对应评委的三个基本疑问。",
+      "boundary": "测试通过不等于生产可用，未覆盖范围见安全自评报告。",
+      "visual_brief": "三栏并排，每栏顶部巨型数字 96px 等宽字体，下接一句说明，栏顶分别为绿黄红三色横线；底部三张小卡说明怎么跑、在哪看、证据在哪。",
+      "image_file": "pages/002.png",
+      "image_status": "approved",
+      "speaker_notes": "三个数字：九十一项测试全通，二十一个内置工具加四个外部服务，注入拦截百分之百且正常请求零误拦。每个数字都能在评委机器上复跑。",
+      "elements": [
+        {
+          "id": "e02-n1",
+          "kind": "text",
+          "role": "metric",
+          "native_intent": "native",
+          "source_ref": "s02.key_points[0]",
+          "confirmation_status": "confirmed",
+          "text": "91"
+        },
+        {
+          "id": "e02-n2",
+          "kind": "text",
+          "role": "metric",
+          "native_intent": "native",
+          "source_ref": "s02.key_points[1]",
+          "confirmation_status": "confirmed",
+          "text": "21"
+        },
+        {
+          "id": "e02-n3",
+          "kind": "text",
+          "role": "metric",
+          "native_intent": "native",
+          "source_ref": "s02.key_points[2]",
+          "confirmation_status": "confirmed",
+          "text": "100%"
+        },
+        {
+          "id": "e02-evidence",
+          "kind": "text",
+          "role": "caption",
+          "native_intent": "native",
+          "source_ref": "s02.explanation",
+          "confirmation_status": "confirmed",
+          "text": "《部署说明》第八节列出全部验证命令与完整输出，评委可原样复跑。"
+        }
+      ],
+      "display": {
+        "coverage": [
+          {
+            "claim": "core_message",
+            "element_ids": [
+              "e02-evidence"
+            ]
+          },
+          {
+            "claim": "explanation",
+            "element_ids": [
+              "e02-evidence"
+            ]
+          },
+          {
+            "claim": "boundary",
+            "element_ids": [
+              "e02-evidence"
+            ]
+          },
+          {
+            "claim": "source_refs/0",
+            "element_ids": [
+              "e02-n1"
+            ]
+          },
+          {
+            "claim": "source_refs/1",
+            "element_ids": [
+              "e02-n1"
+            ]
+          },
+          {
+            "claim": "source_refs/2",
+            "element_ids": [
+              "e02-evidence"
+            ]
+          },
+          {
+            "claim": "key_points/0",
+            "element_ids": [
+              "e02-n1"
+            ]
+          },
+          {
+            "claim": "key_points/1",
+            "element_ids": [
+              "e02-evidence"
+            ]
+          },
+          {
+            "claim": "key_points/2",
+            "element_ids": [
+              "e02-evidence"
+            ]
+          },
+          {
+            "claim": "key_points/3",
+            "element_ids": [
+              "e02-evidence"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "s03",
+      "page_number": 3,
+      "role": "comparison",
+      "title": "一个大脑包办所有事，代价落在三处",
+      "core_message": "单模型的三个结构性代价：判不准、说不清、改不动",
+      "key_points": [
+        "同一个模型既要想「用户要什么」，又要想「这事能不能办」。两个目标写在一段提示词里，互相干扰，结果是该拦的没拦，该放的没放。",
+        "出错时只能看到一个结论，不知道是哪一步出的问题。评委问「为什么判黄」，答不上具体规则与阈值，等于没有判定。",
+        "要加一条风控规则，得动主流程；要加一句合规校验，还得动主流程。改一处牵全身，团队里没人敢动那段代码。",
+        "每个角色只回答自己那一个问题，模型只做理解与选择，判定逻辑留在代码里。"
+      ],
+      "source_refs": [
+        "docs/01-项目简介.md 第一节"
+      ],
+      "explanation": "这三处代价是选择蜂群架构的直接动因，也是后面每一页技术决策的出发点。",
+      "boundary": "此处只陈述代价，不宣称蜂群能完全消除，实际缓解程度见后续各页。",
+      "visual_brief": "三张等高卡片横排，编号用等宽字体 40px，标题 24px，说明文字 17px；卡片底色分别红、黄、灰三档；底部一行结论引出下一页。",
+      "image_file": "pages/003.png",
+      "image_status": "approved",
+      "speaker_notes": "传统做法是一个大脑包办所有事，代价有三处：判不准、说不清、改不动。这三点直接决定了我们后面每一个设计选择。",
+      "elements": [
+        {
+          "id": "e03-p1",
+          "kind": "text",
+          "role": "body",
+          "native_intent": "native",
+          "source_ref": "s03.key_points[0]",
+          "confirmation_status": "confirmed",
+          "text": "判不准"
+        },
+        {
+          "id": "e03-p2",
+          "kind": "text",
+          "role": "body",
+          "native_intent": "native",
+          "source_ref": "s03.key_points[1]",
+          "confirmation_status": "confirmed",
+          "text": "说不清"
+        },
+        {
+          "id": "e03-p3",
+          "kind": "text",
+          "role": "body",
+          "native_intent": "native",
+          "source_ref": "s03.key_points[2]",
+          "confirmation_status": "confirmed",
+          "text": "改不动"
+        },
+        {
+          "id": "e03-lead",
+          "kind": "text",
+          "role": "conclusion",
+          "native_intent": "native",
+          "source_ref": "s03.explanation",
+          "confirmation_status": "confirmed",
+          "text": "解法不是换更强的模型，是把一件事拆给多个专职角色"
+        }
+      ],
+      "display": {
+        "coverage": [
+          {
+            "claim": "core_message",
+            "element_ids": [
+              "e03-lead"
+            ]
+          },
+          {
+            "claim": "explanation",
+            "element_ids": [
+              "e03-p3"
+            ]
+          },
+          {
+            "claim": "boundary",
+            "element_ids": [
+              "e03-lead"
+            ]
+          },
+          {
+            "claim": "source_refs/0",
+            "element_ids": [
+              "e03-lead"
+            ]
+          },
+          {
+            "claim": "key_points/0",
+            "element_ids": [
+              "e03-lead"
+            ]
+          },
+          {
+            "claim": "key_points/1",
+            "element_ids": [
+              "e03-lead"
+            ]
+          },
+          {
+            "claim": "key_points/2",
+            "element_ids": [
+              "e03-p3"
+            ]
+          },
+          {
+            "claim": "key_points/3",
+            "element_ids": [
+              "e03-lead"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "s04",
+      "page_number": 4,
+      "role": "architecture",
+      "title": "五个角色，各管一件事，结论汇到仲裁",
+      "core_message": "评估并行、仲裁合并、任一否决即拦",
+      "key_points": [
+        "意图官",
+        "风控官",
+        "合规官",
+        "体验官",
+        "仲裁官"
+      ],
+      "source_refs": [
+        "runtime/src/bank/swarm.ts",
+        "docs/02-技术文档.md 第二节"
+      ],
+      "explanation": "主视觉页。三个评估官并行执行，任一失败只降级为该维度无结论，不拖累其余两份。",
+      "boundary": "体验官的等级固定为 none，不参与风险仲裁。",
+      "visual_brief": "自上而下的拓扑图：意图官单卡置顶，向下箭头标注派发，中间三张等宽并排卡为三评估官，再向下箭头标注三份结论并行汇入，仲裁官单卡置底，下方并列执行官与审计官两卡。",
+      "image_file": "pages/004.png",
+      "image_status": "approved",
+      "speaker_notes": "五个角色各管一件事。风控、合规、体验三个评估官并行跑，任一失败不拖累其余。仲裁官取最高风险，任一否决即拦。",
+      "elements": [
+        {
+          "id": "e04-intent",
+          "kind": "text",
+          "role": "node",
+          "native_intent": "native",
+          "source_ref": "s04.key_points[0]",
+          "confirmation_status": "confirmed",
+          "text": "意图官"
+        },
+        {
+          "id": "e04-risk",
+          "kind": "text",
+          "role": "node",
+          "native_intent": "native",
+          "source_ref": "s04.key_points[1]",
+          "confirmation_status": "confirmed",
+          "text": "风控官"
+        },
+        {
+          "id": "e04-comp",
+          "kind": "text",
+          "role": "node",
+          "native_intent": "native",
+          "source_ref": "s04.key_points[2]",
+          "confirmation_status": "confirmed",
+          "text": "合规官"
+        },
+        {
+          "id": "e04-ux",
+          "kind": "text",
+          "role": "node",
+          "native_intent": "native",
+          "source_ref": "s04.key_points[3]",
+          "confirmation_status": "confirmed",
+          "text": "体验官"
+        },
+        {
+          "id": "e04-arb",
+          "kind": "text",
+          "role": "node",
+          "native_intent": "native",
+          "source_ref": "s04.key_points[4]",
+          "confirmation_status": "confirmed",
+          "text": "仲裁官"
+        },
+        {
+          "id": "e04-exec",
+          "kind": "text",
+          "role": "node",
+          "native_intent": "native",
+          "source_ref": "s04.key_points[4]",
+          "confirmation_status": "confirmed",
+          "text": "执行官　执行或签发令牌"
+        },
+        {
+          "id": "e04-audit",
+          "kind": "text",
+          "role": "node",
+          "native_intent": "native",
+          "source_ref": "s04.key_points[4]",
+          "confirmation_status": "confirmed",
+          "text": "审计官　写入哈希链"
+        }
+      ],
+      "display": {
+        "coverage": [
+          {
+            "claim": "core_message",
+            "element_ids": [
+              "e04-arb"
+            ]
+          },
+          {
+            "claim": "explanation",
+            "element_ids": [
+              "e04-exec"
+            ]
+          },
+          {
+            "claim": "boundary",
+            "element_ids": [
+              "e04-ux"
+            ]
+          },
+          {
+            "claim": "source_refs/0",
+            "element_ids": [
+              "e04-intent"
+            ]
+          },
+          {
+            "claim": "source_refs/1",
+            "element_ids": [
+              "e04-intent"
+            ]
+          },
+          {
+            "claim": "key_points/0",
+            "element_ids": [
+              "e04-intent"
+            ]
+          },
+          {
+            "claim": "key_points/1",
+            "element_ids": [
+              "e04-risk"
+            ]
+          },
+          {
+            "claim": "key_points/2",
+            "element_ids": [
+              "e04-comp"
+            ]
+          },
+          {
+            "claim": "key_points/3",
+            "element_ids": [
+              "e04-ux"
+            ]
+          },
+          {
+            "claim": "key_points/4",
+            "element_ids": [
+              "e04-arb"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "s05",
+      "page_number": 5,
+      "role": "process",
+      "title": "「转给小王 100 元」走完七步",
+      "core_message": "一条输入走完理解、评估、决策、执行、追溯五段链路",
+      "key_points": [
+        "归一化，识别注入特征，命中即拦",
+        "落到 transfer，payee 小王，金额 10000 分",
+        "风控判黄，合规放行，体验无需追问",
+        "绿绿黄取最高，判黄，需确认",
+        "绑定会话、工具、参数摘要，120 秒有效",
+        "重算摘要比对通过，扣账",
+        "写链，序号递增，前序哈希串起来"
+      ],
+      "density": {
+        "mode": "detailed",
+        "reason": "流程页需完整呈现七个步骤的输入输出与判断条件，七步构成完整链路，缺任一步链路即不成立"
+      },
+      "source_refs": [
+        "runtime/src/bank/orchestrator.ts",
+        "runtime/src/bank/confirm.ts"
+      ],
+      "explanation": "用一条具体转账讲完整条链路，评委记住一条链路就够。前三步只看用户说了什么，中间两步决定能不能办，后两步保证办完能回看。",
+      "boundary": "示例中交易未真实执行，链路各步的结论来自单元测试与红队用例。",
+      "visual_brief": "左侧七行步骤条，每行左侧等宽两位编号，标题固定宽度，说明文字续排；行左侧竖条按绿黄分色；右侧一张蓝色说明卡讲为什么拆成七步。",
+      "image_file": "pages/005.png",
+      "image_status": "approved",
+      "speaker_notes": "用一条转账讲完链路：守卫、意图、三评估、仲裁、令牌、执行、审计。评委记住一条链路就够。",
+      "elements": [
+        {
+          "id": "e05-s1",
+          "kind": "text",
+          "role": "step",
+          "native_intent": "native",
+          "source_ref": "s05.key_points[0]",
+          "confirmation_status": "confirmed",
+          "text": "01"
+        },
+        {
+          "id": "e05-s2",
+          "kind": "text",
+          "role": "step",
+          "native_intent": "native",
+          "source_ref": "s05.key_points[1]",
+          "confirmation_status": "confirmed",
+          "text": "02"
+        },
+        {
+          "id": "e05-s3",
+          "kind": "text",
+          "role": "step",
+          "native_intent": "native",
+          "source_ref": "s05.key_points[2]",
+          "confirmation_status": "confirmed",
+          "text": "03"
+        },
+        {
+          "id": "e05-s4",
+          "kind": "text",
+          "role": "step",
+          "native_intent": "native",
+          "source_ref": "s05.key_points[3]",
+          "confirmation_status": "confirmed",
+          "text": "04"
+        },
+        {
+          "id": "e05-s5",
+          "kind": "text",
+          "role": "step",
+          "native_intent": "native",
+          "source_ref": "s05.key_points[4]",
+          "confirmation_status": "confirmed",
+          "text": "05"
+        },
+        {
+          "id": "e05-s6",
+          "kind": "text",
+          "role": "step",
+          "native_intent": "native",
+          "source_ref": "s05.key_points[5]",
+          "confirmation_status": "confirmed",
+          "text": "06"
+        },
+        {
+          "id": "e05-s7",
+          "kind": "text",
+          "role": "step",
+          "native_intent": "native",
+          "source_ref": "s05.key_points[6]",
+          "confirmation_status": "confirmed",
+          "text": "07"
+        }
+      ],
+      "display": {
+        "coverage": [
+          {
+            "claim": "core_message",
+            "element_ids": [
+              "e05-s1"
+            ]
+          },
+          {
+            "claim": "explanation",
+            "element_ids": [
+              "e05-s1"
+            ]
+          },
+          {
+            "claim": "boundary",
+            "element_ids": [
+              "e05-s1"
+            ]
+          },
+          {
+            "claim": "source_refs/0",
+            "element_ids": [
+              "e05-s1"
+            ]
+          },
+          {
+            "claim": "source_refs/1",
+            "element_ids": [
+              "e05-s1"
+            ]
+          },
+          {
+            "claim": "key_points/0",
+            "element_ids": [
+              "e05-s1"
+            ]
+          },
+          {
+            "claim": "key_points/1",
+            "element_ids": [
+              "e05-s1"
+            ]
+          },
+          {
+            "claim": "key_points/2",
+            "element_ids": [
+              "e05-s1"
+            ]
+          },
+          {
+            "claim": "key_points/3",
+            "element_ids": [
+              "e05-s1"
+            ]
+          },
+          {
+            "claim": "key_points/4",
+            "element_ids": [
+              "e05-s1"
+            ]
+          },
+          {
+            "claim": "key_points/5",
+            "element_ids": [
+              "e05-s1"
+            ]
+          },
+          {
+            "claim": "key_points/6",
+            "element_ids": [
+              "e05-s1"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "s06",
+      "page_number": 6,
+      "role": "concept",
+      "title": "权限分级：绿黄红三色，四维叠加",
+      "core_message": "三色是结论，四维是依据，每条判定带规则名",
+      "key_points": [
+        "只读查询，无金额变动，可逆或无代价。查余额、看账单、列订阅，一次请求返回结果。",
+        "写操作但可控可逆。转账、取消订阅、锁卡，先签发一次性确认令牌，参数摘要一致才执行。",
+        "不可逆或越权。挂失、赎回、解冻、冻结、越界金额，一律拒绝执行，不提供确认通道。",
+        "操作类型、涉及金额、收款人身份、可逆性、发生频次。任一维度命中更高等级，等级取最高。每条命中都带规则编号与具体说明，不只给一个颜色。",
+        "绑定会话、工具、参数摘要、过期时间。执行前重算摘要比对，参数被改过则令牌失效。"
+      ],
+      "source_refs": [
+        "runtime/src/bank/policy.ts",
+        "runtime/src/bank/confirm.ts",
+        "docs/03-安全自评报告.md 第一节"
+      ],
+      "explanation": "绿黄红只是呈现形式，真正的依据是四维阈值表，界面上点开一条判定能看到具体规则编号与数字。",
+      "boundary": "金额阈值与频次阈值为演示配置，上生产前需按真实风控策略重新标定。",
+      "visual_brief": "上排三张等高卡表绿黄红三档，说明文字下方加一行小字标执行前是否需确认；下排两块横排，左块讲四维叠加，右块讲令牌四绑定。",
+      "image_file": "pages/006.png",
+      "image_status": "approved",
+      "speaker_notes": "三色是结论，四维是依据。点开任何一条判定，都能看到具体规则编号和数字。",
+      "elements": [
+        {
+          "id": "e06-green",
+          "kind": "text",
+          "role": "level",
+          "native_intent": "native",
+          "source_ref": "s06.key_points[0]",
+          "confirmation_status": "confirmed",
+          "text": "只读查询，无金额变动，可逆或无代价。查余额、看账单、列订阅，一次请求返回结果。"
+        },
+        {
+          "id": "e06-amber",
+          "kind": "text",
+          "role": "level",
+          "native_intent": "native",
+          "source_ref": "s06.key_points[1]",
+          "confirmation_status": "confirmed",
+          "text": "写操作但可控可逆。转账、取消订阅、锁卡，先签发一次性确认令牌，参数摘要一致才执行。"
+        },
+        {
+          "id": "e06-red",
+          "kind": "text",
+          "role": "level",
+          "native_intent": "native",
+          "source_ref": "s06.key_points[2]",
+          "confirmation_status": "confirmed",
+          "text": "不可逆或越权。挂失、赎回、解冻、冻结、越界金额，一律拒绝执行，不提供确认通道。"
+        },
+        {
+          "id": "e06-dims",
+          "kind": "text",
+          "role": "body",
+          "native_intent": "native",
+          "source_ref": "s06.key_points[3]",
+          "confirmation_status": "confirmed",
+          "text": "四个维度叠加判定"
+        },
+        {
+          "id": "e06-token",
+          "kind": "text",
+          "role": "body",
+          "native_intent": "native",
+          "source_ref": "s06.key_points[4]",
+          "confirmation_status": "confirmed",
+          "text": "令牌四绑定"
+        }
+      ],
+      "display": {
+        "coverage": [
+          {
+            "claim": "core_message",
+            "element_ids": [
+              "e06-dims"
+            ]
+          },
+          {
+            "claim": "explanation",
+            "element_ids": [
+              "e06-dims"
+            ]
+          },
+          {
+            "claim": "boundary",
+            "element_ids": [
+              "e06-green"
+            ]
+          },
+          {
+            "claim": "source_refs/0",
+            "element_ids": [
+              "e06-green"
+            ]
+          },
+          {
+            "claim": "source_refs/1",
+            "element_ids": [
+              "e06-green"
+            ]
+          },
+          {
+            "claim": "source_refs/2",
+            "element_ids": [
+              "e06-green"
+            ]
+          },
+          {
+            "claim": "key_points/0",
+            "element_ids": [
+              "e06-green"
+            ]
+          },
+          {
+            "claim": "key_points/1",
+            "element_ids": [
+              "e06-amber"
+            ]
+          },
+          {
+            "claim": "key_points/2",
+            "element_ids": [
+              "e06-red"
+            ]
+          },
+          {
+            "claim": "key_points/3",
+            "element_ids": [
+              "e06-amber"
+            ]
+          },
+          {
+            "claim": "key_points/4",
+            "element_ids": [
+              "e06-amber"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "s07",
+      "page_number": 7,
+      "role": "concept",
+      "title": "注入防御：模型不碰执行，判断全在代码",
+      "core_message": "四道闸顺序固定，顺序错了就有绕过路径",
+      "key_points": [
+        "归一化文本，识别指令覆盖、角色伪装、越权索取四类特征，命中即拦，模型看不到这段话。",
+        "模型只做两件事：理解诉求、选工具。风险判定与参数校验全在代码层，模型说了不算。",
+        "外部服务返回按数据处理，不进系统提示词，不当指令读。间接注入因此失效。",
+        "工具参数按契约校验，金额越界、收款人凭空出现、非法工具名一律拒绝并记审计。",
+        "12 / 12",
+        "8 / 8",
+        "0%"
+      ],
+      "source_refs": [
+        "runtime/src/bank/guard.ts",
+        "runtime/src/bank/redteam.ts",
+        "docs/03-安全自评报告.md 第二节"
+      ],
+      "explanation": "四道闸是递进关系，前一道失效时后一道仍能兜住。隔离机制使藏在账单备注与订阅名称里的间接注入失效。",
+      "boundary": "特征匹配拦得住已知改写，同义改写可能绕过，见安全自评报告 R5。",
+      "visual_brief": "左栏四道闸纵向排列，每道闸用左侧竖条分色，标题 16px 加正文 15px；右栏三张数字卡纵排，等宽字体 38px 打头，分别标 12/12、8/8、0%。",
+      "image_file": "pages/007.png",
+      "image_status": "approved",
+      "speaker_notes": "四道闸顺序不能错：守卫在最前，令牌在判定之后。顺序错了就有绕过路径。",
+      "elements": [
+        {
+          "id": "e07-g1",
+          "kind": "text",
+          "role": "gate",
+          "native_intent": "native",
+          "source_ref": "s07.key_points[0]",
+          "confirmation_status": "confirmed",
+          "text": "闸一　输入守卫"
+        },
+        {
+          "id": "e07-g2",
+          "kind": "text",
+          "role": "gate",
+          "native_intent": "native",
+          "source_ref": "s07.key_points[1]",
+          "confirmation_status": "confirmed",
+          "text": "闸二　职责隔离"
+        },
+        {
+          "id": "e07-g3",
+          "kind": "text",
+          "role": "gate",
+          "native_intent": "native",
+          "source_ref": "s07.key_points[2]",
+          "confirmation_status": "confirmed",
+          "text": "闸三　外部内容隔离"
+        },
+        {
+          "id": "e07-g4",
+          "kind": "text",
+          "role": "gate",
+          "native_intent": "native",
+          "source_ref": "s07.key_points[3]",
+          "confirmation_status": "confirmed",
+          "text": "闸四　参数收口"
+        },
+        {
+          "id": "e07-m1",
+          "kind": "text",
+          "role": "metric",
+          "native_intent": "native",
+          "source_ref": "s07.key_points[4]",
+          "confirmation_status": "confirmed",
+          "text": "12 / 12"
+        },
+        {
+          "id": "e07-m2",
+          "kind": "text",
+          "role": "metric",
+          "native_intent": "native",
+          "source_ref": "s07.key_points[4]",
+          "confirmation_status": "confirmed",
+          "text": "8 / 8"
+        },
+        {
+          "id": "e07-m3",
+          "kind": "text",
+          "role": "metric",
+          "native_intent": "native",
+          "source_ref": "s07.key_points[4]",
+          "confirmation_status": "confirmed",
+          "text": "0%"
+        }
+      ],
+      "density": {
+        "mode": "detailed",
+        "reason": "概念页需并列四道闸的机制说明与三组实测拦截率，缺任一项则防御链路不完整"
+      },
+      "display": {
+        "coverage": [
+          {
+            "claim": "core_message",
+            "element_ids": [
+              "e07-g4"
+            ]
+          },
+          {
+            "claim": "explanation",
+            "element_ids": [
+              "e07-g1"
+            ]
+          },
+          {
+            "claim": "boundary",
+            "element_ids": [
+              "e07-g1"
+            ]
+          },
+          {
+            "claim": "source_refs/0",
+            "element_ids": [
+              "e07-g1"
+            ]
+          },
+          {
+            "claim": "source_refs/1",
+            "element_ids": [
+              "e07-g1"
+            ]
+          },
+          {
+            "claim": "source_refs/2",
+            "element_ids": [
+              "e07-g2"
+            ]
+          },
+          {
+            "claim": "key_points/0",
+            "element_ids": [
+              "e07-g1"
+            ]
+          },
+          {
+            "claim": "key_points/1",
+            "element_ids": [
+              "e07-g4"
+            ]
+          },
+          {
+            "claim": "key_points/2",
+            "element_ids": [
+              "e07-g3"
+            ]
+          },
+          {
+            "claim": "key_points/3",
+            "element_ids": [
+              "e07-g4"
+            ]
+          },
+          {
+            "claim": "key_points/4",
+            "element_ids": [
+              "e07-m1"
+            ]
+          },
+          {
+            "claim": "key_points/5",
+            "element_ids": [
+              "e07-m2"
+            ]
+          },
+          {
+            "claim": "key_points/6",
+            "element_ids": [
+              "e07-m3"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "s08",
+      "page_number": 8,
+      "role": "process",
+      "title": "意图理解：规则优先，模型兜底",
+      "core_message": "规则确定可复现，模型只在规则未命中时兜底",
+      "key_points": [
+        "十一条意图规则覆盖六类常见表述，一条规则可派生多个工具意图。中英文数字金额一并归一，单轮解析耗时一毫秒内，结果确定可复现。",
+        "规则没命中才请模型解析，输出受契约约束：工具名、槽位、置信度、理由。越界工具名或非法槽位值直接丢弃。",
+        "槽位不全不执行。少金额就问金额，少收款人就问收款人，追问结果回填后重走判定流程。",
+        "金额一律用整数分存储，避免浮点误差。理由与置信度一起落审计，出错时能回看是哪一步判的。",
+        "响应零点六至零点九秒，失败时回落到追问，不猜。"
+      ],
+      "source_refs": [
+        "runtime/src/bank/intent.ts",
+        "runtime/src/bank/model-intent.ts",
+        "runtime/src/bank/types.ts"
+      ],
+      "explanation": "三层形成确定性回退链，模型失败时回到规则再回到追问，不阻塞对话。",
+      "boundary": "模型长尾场景仍可能抽错槽位，追问是主要缓解手段，见安全自评报告 R4。",
+      "visual_brief": "左栏三张纵向卡分别标第一层、第二层、第三层，标题分色，正文说明加一行小字补充；右栏深色代码风格面板逐行列出一次解析的输出字段。",
+      "image_file": "pages/008.png",
+      "image_status": "approved",
+      "speaker_notes": "规则优先，模型兜底，契约再兜底。模型错就退回规则，不阻塞对话。",
+      "elements": [
+        {
+          "id": "e08-l1",
+          "kind": "text",
+          "role": "layer",
+          "native_intent": "native",
+          "source_ref": "s08.key_points[0]",
+          "confirmation_status": "confirmed",
+          "text": "第一层　规则匹配"
+        },
+        {
+          "id": "e08-l2",
+          "kind": "text",
+          "role": "layer",
+          "native_intent": "native",
+          "source_ref": "s08.key_points[1]",
+          "confirmation_status": "confirmed",
+          "text": "第二层　模型兜底"
+        },
+        {
+          "id": "e08-l3",
+          "kind": "text",
+          "role": "layer",
+          "native_intent": "native",
+          "source_ref": "s08.key_points[2]",
+          "confirmation_status": "confirmed",
+          "text": "第三层　缺槽追问"
+        },
+        {
+          "id": "e08-sample",
+          "kind": "text",
+          "role": "code",
+          "native_intent": "native",
+          "source_ref": "s08.key_points[3]",
+          "confirmation_status": "confirmed",
+          "text": "意图：智能转账"
+        }
+      ],
+      "display": {
+        "coverage": [
+          {
+            "claim": "core_message",
+            "element_ids": [
+              "e08-l2"
+            ]
+          },
+          {
+            "claim": "explanation",
+            "element_ids": [
+              "e08-l3"
+            ]
+          },
+          {
+            "claim": "boundary",
+            "element_ids": [
+              "e08-l3"
+            ]
+          },
+          {
+            "claim": "source_refs/0",
+            "element_ids": [
+              "e08-l1"
+            ]
+          },
+          {
+            "claim": "source_refs/1",
+            "element_ids": [
+              "e08-l1"
+            ]
+          },
+          {
+            "claim": "source_refs/2",
+            "element_ids": [
+              "e08-l1"
+            ]
+          },
+          {
+            "claim": "key_points/0",
+            "element_ids": [
+              "e08-l1"
+            ]
+          },
+          {
+            "claim": "key_points/1",
+            "element_ids": [
+              "e08-l1"
+            ]
+          },
+          {
+            "claim": "key_points/2",
+            "element_ids": [
+              "e08-l3"
+            ]
+          },
+          {
+            "claim": "key_points/3",
+            "element_ids": [
+              "e08-l1"
+            ]
+          },
+          {
+            "claim": "key_points/4",
+            "element_ids": [
+              "e08-l3"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "s09",
+      "page_number": 9,
+      "role": "data-evidence",
+      "title": "每条结论都带出处，审计链改一条即断",
+      "core_message": "数字只来自工具返回，模型不产生业务数字",
+      "key_points": [
+        "hash₁ = SHA256(GENESIS + 内容₁)",
+        "hash₂ = SHA256(hash₁ + 内容₂)",
+        "hash₃ = SHA256(hash₂ + 内容₃)",
+        "审计记录只追加不覆盖，历史条目不可编辑。序号从一开始递增，可据此确认没有丢条。",
+        "审计查询接口返回的 chain.ok 字段在校验通过时为真，人工改写一条记录后立刻为假。",
+        "卡号只留后四位，手机号中段掩码。审计文件全文检索无明文卡号与手机号。"
+      ],
+      "source_refs": [
+        "runtime/src/bank/audit.ts",
+        "runtime/src/bank/data.ts",
+        "docs/03-安全自评报告.md 第二节"
+      ],
+      "explanation": "篡改检测的价值来自链式结构，改中间一条后面全部对不上，无法悄悄通过校验。",
+      "boundary": "哈希链能查出改，查不出整段删除，见安全自评报告 R1。",
+      "visual_brief": "左栏公式区用等宽字体三行列出哈希递推式，下接两张说明卡；右栏字段清单六行等距排列，底部两张说明卡。",
+      "image_file": "pages/009.png",
+      "image_status": "approved",
+      "speaker_notes": "数字只来自工具返回，模型不产数字。审计链每条带前序哈希，改一条就断，实测改首行后校验立即失败。",
+      "elements": [
+        {
+          "id": "e09-formula",
+          "kind": "text",
+          "role": "code",
+          "native_intent": "native",
+          "source_ref": "s09.key_points[0]",
+          "confirmation_status": "confirmed",
+          "text": "hash₁ = SHA256(GENESIS + 内容₁)"
+        },
+        {
+          "id": "e09-fields",
+          "kind": "text",
+          "role": "list",
+          "native_intent": "native",
+          "source_ref": "s09.key_points[2]",
+          "confirmation_status": "confirmed",
+          "text": "序号与时间戳"
+        },
+        {
+          "id": "e09-mask",
+          "kind": "text",
+          "role": "body",
+          "native_intent": "native",
+          "source_ref": "s09.key_points[4]",
+          "confirmation_status": "confirmed",
+          "text": "敏感字段脱敏"
+        }
+      ],
+      "density": {
+        "mode": "detailed",
+        "reason": "数据证据页需同时给出哈希递推式、只追加性质、篡改检测实测与脱敏结果四项可核验依据"
+      },
+      "display": {
+        "coverage": [
+          {
+            "claim": "core_message",
+            "element_ids": [
+              "e09-mask"
+            ]
+          },
+          {
+            "claim": "explanation",
+            "element_ids": [
+              "e09-fields"
+            ]
+          },
+          {
+            "claim": "boundary",
+            "element_ids": [
+              "e09-mask"
+            ]
+          },
+          {
+            "claim": "source_refs/0",
+            "element_ids": [
+              "e09-formula"
+            ]
+          },
+          {
+            "claim": "source_refs/1",
+            "element_ids": [
+              "e09-formula"
+            ]
+          },
+          {
+            "claim": "source_refs/2",
+            "element_ids": [
+              "e09-formula"
+            ]
+          },
+          {
+            "claim": "key_points/0",
+            "element_ids": [
+              "e09-formula"
+            ]
+          },
+          {
+            "claim": "key_points/1",
+            "element_ids": [
+              "e09-formula"
+            ]
+          },
+          {
+            "claim": "key_points/2",
+            "element_ids": [
+              "e09-formula"
+            ]
+          },
+          {
+            "claim": "key_points/3",
+            "element_ids": [
+              "e09-fields"
+            ]
+          },
+          {
+            "claim": "key_points/4",
+            "element_ids": [
+              "e09-formula"
+            ]
+          },
+          {
+            "claim": "key_points/5",
+            "element_ids": [
+              "e09-fields"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "s10",
+      "page_number": 10,
+      "role": "architecture",
+      "title": "三套能力收敛成一张工具注册表",
+      "core_message": "内置工具、外部服务与技能库合成一份描述符",
+      "key_points": [
+        "策略表与参数契约是唯一事实来源",
+        "汇率、反欺诈、理财费率、生日礼遇四个服务各自独立进程，超时与失败隔离，某个服务挂掉不影响内置工具。外部工具名统一加前缀，既是路由依据也是防伪依据。",
+        "系统提示词只放目录摘要，每条截断到八十字符。模型判断需要哪一项，再调用加载工具取全文，上限四千字符。提示词体积从一千九百七十一字符降到一百八十四字符。",
+        "注册表三条约束：同名工具直接报错不覆盖，外部工具失败不影响内置，可按来源或按服务器整体移除。"
+      ],
+      "source_refs": [
+        "runtime/src/harness/registry.ts",
+        "runtime/src/bank/builtin-tools.ts",
+        "mcp/servers.json",
+        "docs/02-技术文档.md 第五节"
+      ],
+      "explanation": "把三种来源收敛成统一描述符，模型看到的是一份合并后的工具集，新增能力不必改动主循环。",
+      "boundary": "技能全文上限四千字符，超长技能需拆分。",
+      "visual_brief": "三行横排结构，每行左侧一张窄卡标类别与数量，右侧宽卡写标题与说明，行间留白分隔；底部一行小字写注册表三条约束。",
+      "image_file": "pages/010.png",
+      "image_status": "approved",
+      "speaker_notes": "三套能力收敛成一份描述符。新增一个工具三步搞定，不用动主循环。",
+      "elements": [
+        {
+          "id": "e10-builtin",
+          "kind": "text",
+          "role": "node",
+          "native_intent": "native",
+          "source_ref": "s10.key_points[0]",
+          "confirmation_status": "confirmed",
+          "text": "内置工具"
+        },
+        {
+          "id": "e10-mcp",
+          "kind": "text",
+          "role": "node",
+          "native_intent": "native",
+          "source_ref": "s10.key_points[1]",
+          "confirmation_status": "confirmed",
+          "text": "外部服务"
+        },
+        {
+          "id": "e10-skill",
+          "kind": "text",
+          "role": "node",
+          "native_intent": "native",
+          "source_ref": "s10.key_points[3]",
+          "confirmation_status": "confirmed",
+          "text": "技能库"
+        },
+        {
+          "id": "e10-rule",
+          "kind": "text",
+          "role": "caption",
+          "native_intent": "native",
+          "source_ref": "s10.key_points[4]",
+          "confirmation_status": "confirmed",
+          "text": "注册表三条约束：同名工具直接报错不覆盖，外部工具失败不影响内置，可按来源或按服务器整体移除。"
+        }
+      ],
+      "display": {
+        "coverage": [
+          {
+            "claim": "core_message",
+            "element_ids": [
+              "e10-rule"
+            ]
+          },
+          {
+            "claim": "explanation",
+            "element_ids": [
+              "e10-rule"
+            ]
+          },
+          {
+            "claim": "boundary",
+            "element_ids": [
+              "e10-skill"
+            ]
+          },
+          {
+            "claim": "source_refs/0",
+            "element_ids": [
+              "e10-builtin"
+            ]
+          },
+          {
+            "claim": "source_refs/1",
+            "element_ids": [
+              "e10-builtin"
+            ]
+          },
+          {
+            "claim": "source_refs/2",
+            "element_ids": [
+              "e10-builtin"
+            ]
+          },
+          {
+            "claim": "source_refs/3",
+            "element_ids": [
+              "e10-skill"
+            ]
+          },
+          {
+            "claim": "key_points/0",
+            "element_ids": [
+              "e10-rule"
+            ]
+          },
+          {
+            "claim": "key_points/1",
+            "element_ids": [
+              "e10-rule"
+            ]
+          },
+          {
+            "claim": "key_points/2",
+            "element_ids": [
+              "e10-rule"
+            ]
+          },
+          {
+            "claim": "key_points/3",
+            "element_ids": [
+              "e10-rule"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "s11",
+      "page_number": 11,
+      "role": "data-evidence",
+      "title": "每一项都有命令与输出可复现",
+      "core_message": "测试分布、红队结果与成本数据均可在评委机器上复跑",
+      "key_points": [
+        "29",
+        "15",
+        "11",
+        "9",
+        "8",
+        "5",
+        "红队四十条分四组：直接注入十二条、间接注入八条、越权操作八条、正常请求十二条。攻击拦截百分之百，正常请求误拦为零。",
+        "两轮对话累计三千八百零六个提示词字符，命中前缀缓存三千四百五十六个，命中率百分之九十一。系统提示词从一千九百七十一字符降到一百八十四字符。"
+      ],
+      "source_refs": [
+        "runtime 测试套件",
+        "mcp/selftest.mjs",
+        "docs/04-部署说明.md 第八节"
+      ],
+      "explanation": "每个数字都配了对应的验证命令与完整输出，评委可原样复跑而不是只听结论。",
+      "boundary": "缓存命中率取决于对话形态，不同输入下该数值会变化。",
+      "visual_brief": "左栏八张小卡四行两列排布，每张卡上方等宽数字下方名称，颜色按测试层分三档；下方一条横条写红队分组；右栏四张说明卡纵排，分别标成本体积、外部服务、模型不服从、证据在哪。",
+      "image_file": "pages/011.png",
+      "image_status": "approved",
+      "speaker_notes": "每个数字都配了验证命令和完整输出，评委可以原样复跑，不是只听我们说。",
+      "elements": [
+        {
+          "id": "e11-dist",
+          "kind": "text",
+          "role": "metric",
+          "native_intent": "native",
+          "source_ref": "s11.key_points[0]",
+          "confirmation_status": "confirmed",
+          "text": "29"
+        },
+        {
+          "id": "e11-redteam",
+          "kind": "text",
+          "role": "body",
+          "native_intent": "native",
+          "source_ref": "s11.key_points[1]",
+          "confirmation_status": "confirmed",
+          "text": "红队四十条分四组：直接注入十二条、间接注入八条、越权操作八条、正常请求十二条。攻击拦截百分之百，正常请求误拦为零。"
+        },
+        {
+          "id": "e11-cost",
+          "kind": "text",
+          "role": "body",
+          "native_intent": "native",
+          "source_ref": "s11.key_points[2]",
+          "confirmation_status": "confirmed",
+          "text": "两轮对话累计三千八百零六个提示词字符，命中前缀缓存三千四百五十六个，命中率百分之九十一。系统提示词从一千九百七十一字符降到一百八十四字符。"
+        },
+        {
+          "id": "e11-mcp",
+          "kind": "text",
+          "role": "body",
+          "native_intent": "native",
+          "source_ref": "s11.key_points[4]",
+          "confirmation_status": "confirmed",
+          "text": "四个服务十三个工具全部可用。样例：兑换一百美元折合七百一十二元人民币，理财适配判定给出不适合并列出原因。"
+        },
+        {
+          "id": "e11-guard",
+          "kind": "text",
+          "role": "body",
+          "native_intent": "native",
+          "source_ref": "s11.explanation",
+          "confirmation_status": "confirmed",
+          "text": "模型被诱导时，越权工具与越界金额仍被代码层拒绝，执行结果不受模型影响。"
+        }
+      ],
+      "density": {
+        "mode": "detailed",
+        "reason": "数据证据页逐项列出八组测试分布数量与红队、成本两组结论，八组数量本身即该页的支撑要点"
+      },
+      "display": {
+        "coverage": [
+          {
+            "claim": "core_message",
+            "element_ids": [
+              "e11-redteam"
+            ]
+          },
+          {
+            "claim": "explanation",
+            "element_ids": [
+              "e11-mcp"
+            ]
+          },
+          {
+            "claim": "boundary",
+            "element_ids": [
+              "e11-cost"
+            ]
+          },
+          {
+            "claim": "source_refs/0",
+            "element_ids": [
+              "e11-dist"
+            ]
+          },
+          {
+            "claim": "source_refs/1",
+            "element_ids": [
+              "e11-dist"
+            ]
+          },
+          {
+            "claim": "source_refs/2",
+            "element_ids": [
+              "e11-redteam"
+            ]
+          },
+          {
+            "claim": "key_points/0",
+            "element_ids": [
+              "e11-dist"
+            ]
+          },
+          {
+            "claim": "key_points/1",
+            "element_ids": [
+              "e11-dist"
+            ]
+          },
+          {
+            "claim": "key_points/2",
+            "element_ids": [
+              "e11-dist"
+            ]
+          },
+          {
+            "claim": "key_points/3",
+            "element_ids": [
+              "e11-dist"
+            ]
+          },
+          {
+            "claim": "key_points/4",
+            "element_ids": [
+              "e11-dist"
+            ]
+          },
+          {
+            "claim": "key_points/5",
+            "element_ids": [
+              "e11-dist"
+            ]
+          },
+          {
+            "claim": "key_points/6",
+            "element_ids": [
+              "e11-redteam"
+            ]
+          },
+          {
+            "claim": "key_points/7",
+            "element_ids": [
+              "e11-cost"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "s12",
+      "page_number": 12,
+      "role": "summary",
+      "title": "已知风险清单，八项，写在报告里",
+      "core_message": "主动交代残余风险，每项写清影响、缓解与建议",
+      "key_points": [
+        "R1　审计链防不住整段删除",
+        "R2　没有真实身份认证",
+        "R3　文件存储无并发控制",
+        "R4　模型长尾误判",
+        "R5　提示词语义变体",
+        "R6　外部服务投毒",
+        "R7　没有速率限制",
+        "R8　令牌在前端明文展示"
+      ],
+      "source_refs": [
+        "docs/03-安全自评报告.md 第三节"
+      ],
+      "explanation": "主动交代已知风险比被问出来更可信，每项风险配现有缓解、残余风险与改进建议。",
+      "boundary": "风险等级为项目组自评，未经第三方评估。",
+      "visual_brief": "两列四行排布八张风险卡，左列 R1 至 R4、右列 R5 至 R8，每张卡左侧竖条按红黄灰分档，卡内标题加一行小字说明；底部一条宽卡说明报告怎么写的。",
+      "image_file": "pages/012.png",
+      "image_status": "approved",
+      "speaker_notes": "这一页是加分项。八项已知风险，每项写清影响、缓解、残余风险和建议，还列了没测到的范围。",
+      "elements": [
+        {
+          "id": "e12-r1",
+          "kind": "text",
+          "role": "risk",
+          "native_intent": "native",
+          "source_ref": "s12.key_points[0]",
+          "confirmation_status": "confirmed",
+          "text": "R1　审计链防不住整段删除"
+        },
+        {
+          "id": "e12-r2",
+          "kind": "text",
+          "role": "risk",
+          "native_intent": "native",
+          "source_ref": "s12.key_points[0]",
+          "confirmation_status": "confirmed",
+          "text": "R2　没有真实身份认证"
+        },
+        {
+          "id": "e12-r3",
+          "kind": "text",
+          "role": "risk",
+          "native_intent": "native",
+          "source_ref": "s12.key_points[0]",
+          "confirmation_status": "confirmed",
+          "text": "R3　文件存储无并发控制"
+        },
+        {
+          "id": "e12-r4",
+          "kind": "text",
+          "role": "risk",
+          "native_intent": "native",
+          "source_ref": "s12.key_points[1]",
+          "confirmation_status": "confirmed",
+          "text": "R4　模型长尾误判"
+        },
+        {
+          "id": "e12-r5",
+          "kind": "text",
+          "role": "risk",
+          "native_intent": "native",
+          "source_ref": "s12.key_points[1]",
+          "confirmation_status": "confirmed",
+          "text": "R5　提示词语义变体"
+        },
+        {
+          "id": "e12-r6",
+          "kind": "text",
+          "role": "risk",
+          "native_intent": "native",
+          "source_ref": "s12.key_points[1]",
+          "confirmation_status": "confirmed",
+          "text": "R6　外部服务投毒"
+        },
+        {
+          "id": "e12-r7",
+          "kind": "text",
+          "role": "risk",
+          "native_intent": "native",
+          "source_ref": "s12.key_points[2]",
+          "confirmation_status": "confirmed",
+          "text": "R7　没有速率限制"
+        },
+        {
+          "id": "e12-r8",
+          "kind": "text",
+          "role": "risk",
+          "native_intent": "native",
+          "source_ref": "s12.key_points[2]",
+          "confirmation_status": "confirmed",
+          "text": "R8　令牌在前端明文展示"
+        },
+        {
+          "id": "e12-report",
+          "kind": "text",
+          "role": "caption",
+          "native_intent": "native",
+          "source_ref": "s12.key_points[3]",
+          "confirmation_status": "confirmed",
+          "text": "每项风险写清影响、现有缓解、残余风险与改进建议。同时列出未覆盖的测试范围：真实渗透测试、并发压测、密钥轮转流程、多实例部署下的审计一致性。"
+        }
+      ],
+      "density": {
+        "mode": "detailed",
+        "reason": "风险清单页八条风险各为一条独立要点，缺任一条则清单不完整"
+      },
+      "display": {
+        "coverage": [
+          {
+            "claim": "core_message",
+            "element_ids": [
+              "e12-report"
+            ]
+          },
+          {
+            "claim": "explanation",
+            "element_ids": [
+              "e12-report"
+            ]
+          },
+          {
+            "claim": "boundary",
+            "element_ids": [
+              "e12-report"
+            ]
+          },
+          {
+            "claim": "source_refs/0",
+            "element_ids": [
+              "e12-r3"
+            ]
+          },
+          {
+            "claim": "key_points/0",
+            "element_ids": [
+              "e12-r1"
+            ]
+          },
+          {
+            "claim": "key_points/1",
+            "element_ids": [
+              "e12-r2"
+            ]
+          },
+          {
+            "claim": "key_points/2",
+            "element_ids": [
+              "e12-r3"
+            ]
+          },
+          {
+            "claim": "key_points/3",
+            "element_ids": [
+              "e12-r4"
+            ]
+          },
+          {
+            "claim": "key_points/4",
+            "element_ids": [
+              "e12-r5"
+            ]
+          },
+          {
+            "claim": "key_points/5",
+            "element_ids": [
+              "e12-r6"
+            ]
+          },
+          {
+            "claim": "key_points/6",
+            "element_ids": [
+              "e12-r7"
+            ]
+          },
+          {
+            "claim": "key_points/7",
+            "element_ids": [
+              "e12-r8"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "s13",
+      "page_number": 13,
+      "role": "summary",
+      "title": "把一件事拆给多个专职角色，比换更强的模型更可靠",
+      "core_message": "五角色分工、三色分级、哈希链构成整套机制",
+      "key_points": [
+        "五角色",
+        "三色分级",
+        "哈希链"
+      ],
+      "source_refs": [
+        "docs/01-项目简介.md"
+      ],
+      "explanation": "收束页只回扣主线，不新增论证。",
+      "visual_brief": "主句居中 56px，下方绿色短横线，再下三个等宽数字块横排标五角色、三色分级、哈希链，底部一行小字说明交付内容。",
+      "image_file": "pages/013.png",
+      "image_status": "approved",
+      "speaker_notes": "把一件事拆给多个专职角色，比换更强的模型更可靠。谢谢各位评委。",
+      "elements": [
+        {
+          "id": "e13-title",
+          "kind": "text",
+          "role": "title",
+          "native_intent": "native",
+          "source_ref": "s13.core_message",
+          "confirmation_status": "confirmed",
+          "text": "把一件事拆给多个专职角色，"
+        },
+        {
+          "id": "e13-metrics",
+          "kind": "text",
+          "role": "metric",
+          "native_intent": "native",
+          "source_ref": "s13.key_points[0]",
+          "confirmation_status": "confirmed",
+          "text": "五角色"
+        },
+        {
+          "id": "e13-note",
+          "kind": "text",
+          "role": "caption",
+          "native_intent": "native",
+          "source_ref": "s13.explanation",
+          "confirmation_status": "confirmed",
+          "text": "代码、文档、部署说明与全部测试用例随提交包提供，可在评委机器上复跑"
+        }
+      ],
+      "display": {
+        "coverage": [
+          {
+            "claim": "core_message",
+            "element_ids": [
+              "e13-metrics"
+            ]
+          },
+          {
+            "claim": "explanation",
+            "element_ids": [
+              "e13-title"
+            ]
+          },
+          {
+            "claim": "source_refs/0",
+            "element_ids": [
+              "e13-title"
+            ]
+          },
+          {
+            "claim": "key_points/0",
+            "element_ids": [
+              "e13-metrics"
+            ]
+          },
+          {
+            "claim": "key_points/1",
+            "element_ids": [
+              "e13-title"
+            ]
+          },
+          {
+            "claim": "key_points/2",
+            "element_ids": [
+              "e13-title"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

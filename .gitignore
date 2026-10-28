@@ -19,6 +19,10 @@ shots/
 
 # 答辩材料构建缓存
 ppt/**/.slidep/
+.slidep/
+
+# 评审中间产物：渲染图、评分卡草稿
+.work/
 
 # 赛题交付产物：由 scripts/md2docx.py 生成
 deliverables/

@@ -1,20 +1,32 @@
-<Slide style={{ background: "#0B1220", padding: "56px 72px", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-  <Text style={{ color: "#6B7280", fontSize: 14, letterSpacing: 5 }}>结语</Text>
-  <Text style={{ color: "#F7F4EC", fontSize: 56, fontWeight: 700, lineHeight: 1.35, marginTop: 28, textAlign: "center" }}>把一件事拆给多个专职角色，<br />比换更强的模型更可靠</Text>
-  <Box style={{ width: 96, height: 6, background: "#22C55E", marginTop: 36 }} />
-  <Box style={{ display: "flex", flexDirection: "row", gap: 44, marginTop: 40 }}>
-    <Box style={{ textAlign: "center" }}>
-      <Text style={{ color: "#22C55E", fontSize: 34, fontWeight: 700, fontFamily: "JetBrains Mono, monospace" }}>五角色</Text>
-      <Text style={{ color: "#6B7280", fontSize: 15, marginTop: 8 }}>分工与仲裁</Text>
+<Slide style={{ background: "#0B1220", padding: "44px 72px 40px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+  <Box style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+    <Text style={{ color: "#6B7280", fontSize: 14, letterSpacing: 5 }}>结语</Text>
+    <Text style={{ color: "#F7F4EC", fontSize: 54, fontWeight: 700, lineHeight: 1.32, marginTop: 24, textAlign: "center" }}>把一件事拆给多个专职角色，<br />比换更强的模型更可靠</Text>
+    <Box style={{ width: 96, height: 6, background: "#22C55E", marginTop: 28 }} />
+  </Box>
+
+  <Box style={{ display: "flex", flexDirection: "row", gap: 22 }}>
+    <Box style={{ flex: 1, background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.32)", borderRadius: 11, padding: "20px 22px" }}>
+      <Text style={{ color: "#22C55E", fontSize: 30, fontWeight: 700, fontFamily: "Consolas, monospace" }}>五角色</Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 16, lineHeight: 1.6, marginTop: 8 }}>分工与仲裁</Text>
+      <Text style={{ color: "#6B7280", fontSize: 14, lineHeight: 1.6, marginTop: 8 }}>意图、风控、合规、体验并行评估，仲裁取最高</Text>
     </Box>
-    <Box style={{ textAlign: "center" }}>
-      <Text style={{ color: "#F59E0B", fontSize: 34, fontWeight: 700, fontFamily: "JetBrains Mono, monospace" }}>三色分级</Text>
-      <Text style={{ color: "#6B7280", fontSize: 15, marginTop: 8 }}>绿黄红与令牌</Text>
+    <Box style={{ flex: 1, background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.32)", borderRadius: 11, padding: "20px 22px" }}>
+      <Text style={{ color: "#F59E0B", fontSize: 30, fontWeight: 700, fontFamily: "Consolas, monospace" }}>三色分级</Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 16, lineHeight: 1.6, marginTop: 8 }}>绿黄红与令牌</Text>
+      <Text style={{ color: "#6B7280", fontSize: 14, lineHeight: 1.6, marginTop: 8 }}>直连、令牌、拦截三档，判定带规则编号</Text>
     </Box>
-    <Box style={{ textAlign: "center" }}>
-      <Text style={{ color: "#3B82F6", fontSize: 34, fontWeight: 700, fontFamily: "JetBrains Mono, monospace" }}>哈希链</Text>
-      <Text style={{ color: "#6B7280", fontSize: 15, marginTop: 8 }}>全程可追溯</Text>
+    <Box style={{ flex: 1, background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.32)", borderRadius: 11, padding: "20px 22px" }}>
+      <Text style={{ color: "#3B82F6", fontSize: 30, fontWeight: 700, fontFamily: "Consolas, monospace" }}>哈希链</Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 16, lineHeight: 1.6, marginTop: 8 }}>全程可追溯</Text>
+      <Text style={{ color: "#6B7280", fontSize: 14, lineHeight: 1.6, marginTop: 8 }}>前序哈希串起每条记录，改一条即断链</Text>
     </Box>
   </Box>
-  <Text style={{ color: "#9CA3AF", fontSize: 18, marginTop: 44 }}>代码、文档、部署说明与全部测试用例随提交包提供，可在评委机器上复跑</Text>
+
+  <Box style={{ borderTop: "1px solid #243044", paddingTop: 20, display: "flex", flexDirection: "row", gap: 20, alignItems: "center" }}>
+    <Text style={{ color: "#9CA3AF", fontSize: 17 }}>代码、文档、部署说明与全部测试用例随提交包提供，可在评委机器上复跑</Text>
+    <Box style={{ flex: 1 }} />
+    <Text style={{ color: "#6B7280", fontSize: 15 }}>CordiBank 蜂群项目组</Text>
+    <Text style={{ color: "#6B7280", fontSize: 15 }}>2026 年 10 月</Text>
+  </Box>
 </Slide>

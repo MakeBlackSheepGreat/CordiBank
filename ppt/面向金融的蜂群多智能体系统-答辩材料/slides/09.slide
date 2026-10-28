@@ -6,9 +6,9 @@
     <Box style={{ flex: 1.1, display: "flex", flexDirection: "column", gap: 12 }}>
       <Text style={{ color: "#F7F4EC", fontSize: 20, fontWeight: 600 }}>追加式哈希链</Text>
       <Box style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.35)", borderRadius: 12, padding: 22 }}>
-        <Text style={{ color: "#93C5FD", fontSize: 15, fontFamily: "JetBrains Mono, monospace" }}>hash₁ = SHA256(GENESIS + 内容₁)</Text>
-        <Text style={{ color: "#93C5FD", fontSize: 15, fontFamily: "JetBrains Mono, monospace", marginTop: 8 }}>hash₂ = SHA256(hash₁ + 内容₂)</Text>
-        <Text style={{ color: "#93C5FD", fontSize: 15, fontFamily: "JetBrains Mono, monospace", marginTop: 8 }}>hash₃ = SHA256(hash₂ + 内容₃)</Text>
+        <Text style={{ color: "#93C5FD", fontSize: 15, fontFamily: "Consolas, monospace" }}>hash₁ = SHA256(GENESIS + 内容₁)</Text>
+        <Text style={{ color: "#93C5FD", fontSize: 15, fontFamily: "Consolas, monospace", marginTop: 8 }}>hash₂ = SHA256(hash₁ + 内容₂)</Text>
+        <Text style={{ color: "#93C5FD", fontSize: 15, fontFamily: "Consolas, monospace", marginTop: 8 }}>hash₃ = SHA256(hash₂ + 内容₃)</Text>
       </Box>
       <Text style={{ color: "#9CA3AF", fontSize: 16, lineHeight: 1.8 }}>每条记录写入前把上一条的哈希拼进摘要再算哈希。改动中间任意一条，后面全部对不上，篡改无法悄悄通过校验。</Text>
       <Box style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 12, padding: 20 }}>
