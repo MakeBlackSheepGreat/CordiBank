@@ -13,6 +13,12 @@ store/
 # 界面验收截图
 shots/
 
+# 答辩材料构建缓存
+ppt/**/.slidep/
+
+# 赛题交付产物：由 scripts/md2docx.py 生成
+deliverables/
+
 # 测试缓存
 .vitest-cache/
 

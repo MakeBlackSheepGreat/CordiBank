@@ -1,0 +1,44 @@
+<Slide style={{ background: "#0B1220", padding: "44px 72px", display: "flex", flexDirection: "column" }}>
+  <Text style={{ color: "#6B7280", fontSize: 14, letterSpacing: 3 }}>可追溯</Text>
+  <Text style={{ color: "#F7F4EC", fontSize: 34, fontWeight: 700, marginTop: 10 }}>每条结论都带出处，审计链改一条即断</Text>
+
+  <Box style={{ display: "flex", flexDirection: "row", gap: 36, marginTop: 32 }}>
+    <Box style={{ flex: 1.1, display: "flex", flexDirection: "column", gap: 12 }}>
+      <Text style={{ color: "#F7F4EC", fontSize: 20, fontWeight: 600 }}>追加式哈希链</Text>
+      <Box style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.35)", borderRadius: 12, padding: 22 }}>
+        <Text style={{ color: "#93C5FD", fontSize: 15, fontFamily: "JetBrains Mono, monospace" }}>hash₁ = SHA256(GENESIS + 内容₁)</Text>
+        <Text style={{ color: "#93C5FD", fontSize: 15, fontFamily: "JetBrains Mono, monospace", marginTop: 8 }}>hash₂ = SHA256(hash₁ + 内容₂)</Text>
+        <Text style={{ color: "#93C5FD", fontSize: 15, fontFamily: "JetBrains Mono, monospace", marginTop: 8 }}>hash₃ = SHA256(hash₂ + 内容₃)</Text>
+      </Box>
+      <Text style={{ color: "#9CA3AF", fontSize: 16, lineHeight: 1.8 }}>每条记录写入前把上一条的哈希拼进摘要再算哈希。改动中间任意一条，后面全部对不上，篡改无法悄悄通过校验。</Text>
+      <Box style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.35)", borderRadius: 12, padding: 20 }}>
+        <Text style={{ color: "#22C55E", fontSize: 17, fontWeight: 600 }}>实测：改首行后校验失败</Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 15, lineHeight: 1.7, marginTop: 8 }}>审计查询接口返回的 chain.ok 字段在校验通过时为真，人工改写一条记录后立刻为假。</Text>
+      </Box>
+      <Box style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.35)", borderRadius: 12, padding: 20 }}>
+        <Text style={{ color: "#93C5FD", fontSize: 17, fontWeight: 600 }}>只追加，不改写</Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 15, lineHeight: 1.7, marginTop: 8 }}>审计记录只追加不覆盖，历史条目不可编辑。序号从一开始递增，可据此确认没有丢条。</Text>
+      </Box>
+    </Box>
+
+    <Box style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
+      <Text style={{ color: "#F7F4EC", fontSize: 20, fontWeight: 600 }}>一条记录里有什么</Text>
+      <Box style={{ background: "rgba(107,114,128,0.10)", border: "1px solid rgba(107,114,128,0.35)", borderRadius: 12, padding: 22, display: "flex", flexDirection: "column", gap: 10 }}>
+        <Text style={{ color: "#D1D5DB", fontSize: 15 }}>序号与时间戳</Text>
+        <Text style={{ color: "#D1D5DB", fontSize: 15 }}>会话标识与渠道来源</Text>
+        <Text style={{ color: "#D1D5DB", fontSize: 15 }}>意图、工具、槽位摘要</Text>
+        <Text style={{ color: "#D1D5DB", fontSize: 15 }}>风险等级与命中的规则编号</Text>
+        <Text style={{ color: "#D1D5DB", fontSize: 15 }}>蜂群各角色的分工结论</Text>
+        <Text style={{ color: "#D1D5DB", fontSize: 15 }}>前序哈希与本条哈希</Text>
+      </Box>
+      <Box style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 12, padding: 20 }}>
+        <Text style={{ color: "#F59E0B", fontSize: 17, fontWeight: 600 }}>敏感字段脱敏</Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 15, lineHeight: 1.7, marginTop: 8 }}>卡号只留后四位，手机号中段掩码。审计文件全文检索无明文卡号与手机号。</Text>
+      </Box>
+      <Box style={{ background: "rgba(107,114,128,0.12)", border: "1px solid rgba(107,114,128,0.35)", borderRadius: 12, padding: 20 }}>
+        <Text style={{ color: "#D1D5DB", fontSize: 17, fontWeight: 600 }}>查询接口自带校验</Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 15, lineHeight: 1.7, marginTop: 8 }}>审计查询返回时顺带重算全链，校验结果由 chain.ok 字段给出，界面直接显示通过或失败。</Text>
+      </Box>
+    </Box>
+  </Box>
+</Slide>

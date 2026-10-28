@@ -263,6 +263,8 @@ export interface ChatReply {
   missing: string[];
   /** 意图来源：规则或模型，便于界面标注。 */
   intentSource?: "rule" | "model";
+  /** 蜂群协同轨迹：只有走 swarmChat 时存在，界面据此展示分工。 */
+  trace?: import("./swarm.ts").SwarmTrace;
 }
 
 export interface GuardVerdict {

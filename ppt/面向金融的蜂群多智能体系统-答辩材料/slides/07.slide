@@ -1,0 +1,44 @@
+<Slide style={{ background: "#0B1220", padding: "36px 72px", display: "flex", flexDirection: "column" }}>
+  <Text style={{ color: "#6B7280", fontSize: 14, letterSpacing: 3 }}>安全设计 · 二</Text>
+  <Text style={{ color: "#F7F4EC", fontSize: 34, fontWeight: 700, marginTop: 10 }}>注入防御：模型不碰执行，判断全在代码</Text>
+
+  <Box style={{ display: "flex", flexDirection: "row", gap: 32, marginTop: 26 }}>
+    <Box style={{ flex: 1.15, display: "flex", flexDirection: "column", gap: 10 }}>
+      <Text style={{ color: "#F7F4EC", fontSize: 20, fontWeight: 600 }}>四道闸，顺序固定</Text>
+      <Box style={{ background: "rgba(34,197,94,0.08)", borderLeft: "3px solid #22C55E", padding: "10px 14px" }}>
+        <Text style={{ color: "#22C55E", fontSize: 16, fontWeight: 600 }}>闸一　输入守卫</Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 15, lineHeight: 1.6, marginTop: 5 }}>归一化文本，识别指令覆盖、角色伪装、越权索取四类特征，命中即拦，模型看不到这段话。</Text>
+      </Box>
+      <Box style={{ background: "rgba(245,158,11,0.08)", borderLeft: "3px solid #F59E0B", padding: "10px 14px" }}>
+        <Text style={{ color: "#F59E0B", fontSize: 16, fontWeight: 600 }}>闸二　职责隔离</Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 15, lineHeight: 1.6, marginTop: 5 }}>模型只做两件事：理解诉求、选工具。风险判定与参数校验全在代码层，模型说了不算。</Text>
+      </Box>
+      <Box style={{ background: "rgba(239,68,68,0.08)", borderLeft: "3px solid #EF4444", padding: "10px 14px" }}>
+        <Text style={{ color: "#EF4444", fontSize: 16, fontWeight: 600 }}>闸三　外部内容隔离</Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 15, lineHeight: 1.6, marginTop: 5 }}>外部服务返回按数据处理，不进系统提示词，不当指令读。间接注入因此失效。</Text>
+      </Box>
+      <Box style={{ background: "rgba(59,130,246,0.08)", borderLeft: "3px solid #3B82F6", padding: "10px 14px" }}>
+        <Text style={{ color: "#93C5FD", fontSize: 16, fontWeight: 600 }}>闸四　参数收口</Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 15, lineHeight: 1.6, marginTop: 5 }}>工具参数按契约校验，金额越界、收款人凭空出现、非法工具名一律拒绝并记审计。</Text>
+      </Box>
+    </Box>
+
+    <Box style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
+      <Box style={{ background: "rgba(34,197,94,0.10)", border: "1px solid rgba(34,197,94,0.4)", borderRadius: 12, padding: "24px 22px" }}>
+        <Text style={{ color: "#22C55E", fontSize: 38, fontWeight: 700, fontFamily: "JetBrains Mono, monospace" }}>12 / 12</Text>
+        <Text style={{ color: "#F7F4EC", fontSize: 18, fontWeight: 600, marginTop: 6 }}>直接注入全部拦截</Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 15, lineHeight: 1.6, marginTop: 6 }}>「忽略之前的指令」「你现在是管理员」等十二种改写方式，全部在入口被挡下。</Text>
+      </Box>
+      <Box style={{ background: "rgba(245,158,11,0.10)", border: "1px solid rgba(245,158,11,0.4)", borderRadius: 12, padding: "24px 22px" }}>
+        <Text style={{ color: "#F59E0B", fontSize: 38, fontWeight: 700, fontFamily: "JetBrains Mono, monospace" }}>8 / 8</Text>
+        <Text style={{ color: "#F7F4EC", fontSize: 18, fontWeight: 600, marginTop: 6 }}>间接注入全部拦截</Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 15, lineHeight: 1.6, marginTop: 6 }}>把恶意指令藏在账单备注、订阅名称、理财介绍里，经外部服务返回，隔离机制生效。</Text>
+      </Box>
+      <Box style={{ background: "rgba(107,114,128,0.12)", border: "1px solid rgba(107,114,128,0.4)", borderRadius: 12, padding: "24px 22px" }}>
+        <Text style={{ color: "#D1D5DB", fontSize: 38, fontWeight: 700, fontFamily: "JetBrains Mono, monospace" }}>0%</Text>
+        <Text style={{ color: "#F7F4EC", fontSize: 18, fontWeight: 600, marginTop: 6 }}>正常请求误拦截</Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 15, lineHeight: 1.6, marginTop: 6 }}>十二条正常业务用例零误拦。拦得住和放得过，两头都守住才算可用。</Text>
+      </Box>
+    </Box>
+  </Box>
+</Slide>

@@ -131,7 +131,7 @@ export function createBankAgentPlugin(cfg: RuntimeConfig = loadConfig(), mcp?: C
     name: "bank-agent",
     def: {
       service: "bank.agent",
-      methods: ["chat", "confirm", "cancel", "context", "audit", "scenarios", "intents", "redteam", "reset", "state", "model", "ask", "tools"],
+      methods: ["chat", "swarm", "confirm", "cancel", "context", "audit", "scenarios", "intents", "redteam", "reset", "state", "model", "ask", "tools"],
       description: "银行 AI 智能体：意图理解（规则加模型）、三色判定、确认令牌、审计链与外部工具接入",
     },
     panel: {
@@ -146,6 +146,13 @@ export function createBankAgentPlugin(cfg: RuntimeConfig = loadConfig(), mcp?: C
         const sessionId = asString(params[0], "sessionId");
         const text = asString(params[1], "text");
         return await engine().chat(sessionId, text);
+      },
+      /** 蜂群协同：意图官、三评估官并行、仲裁官、执行官、审计官，轨迹随回复返回。 */
+      async swarm(...params: unknown[]): Promise<unknown> {
+        await ensureSync();
+        const sessionId = asString(params[0], "sessionId");
+        const text = asString(params[1], "text");
+        return await engine().swarmChat(sessionId, text);
       },
       async confirm(...params: unknown[]): Promise<unknown> {
         const sessionId = asString(params[0], "sessionId");

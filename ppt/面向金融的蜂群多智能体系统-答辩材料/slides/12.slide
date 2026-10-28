@@ -1,0 +1,49 @@
+<Slide style={{ background: "#0B1220", padding: "44px 72px", display: "flex", flexDirection: "column" }}>
+  <Text style={{ color: "#6B7280", fontSize: 14, letterSpacing: 3 }}>安全自评</Text>
+  <Text style={{ color: "#F7F4EC", fontSize: 34, fontWeight: 700, marginTop: 10 }}>已知风险清单，八项，写在报告里</Text>
+
+  <Box style={{ display: "flex", flexDirection: "row", gap: 20, marginTop: 30 }}>
+    <Box style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
+      <Box style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.32)", borderRadius: 10, padding: 14 }}>
+        <Text style={{ color: "#EF4444", fontSize: 16, fontWeight: 600 }}>R1　审计链防不住整段删除</Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 14, lineHeight: 1.6, marginTop: 4 }}>能查出改，查不出删。需外部锚定存证。</Text>
+      </Box>
+      <Box style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.32)", borderRadius: 10, padding: 14 }}>
+        <Text style={{ color: "#EF4444", fontSize: 16, fontWeight: 600 }}>R2　没有真实身份认证</Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 14, lineHeight: 1.6, marginTop: 4 }}>会话按渠道标识建，未接统一认证。</Text>
+      </Box>
+      <Box style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.32)", borderRadius: 10, padding: 14 }}>
+        <Text style={{ color: "#F59E0B", fontSize: 16, fontWeight: 600 }}>R3　文件存储无并发控制</Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 14, lineHeight: 1.6, marginTop: 4 }}>单进程演示可用，多实例部署需换库。</Text>
+      </Box>
+      <Box style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.32)", borderRadius: 10, padding: 14 }}>
+        <Text style={{ color: "#F59E0B", fontSize: 16, fontWeight: 600 }}>R4　模型长尾误判</Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 14, lineHeight: 1.6, marginTop: 4 }}>兜底解析可能抽错槽位，追问可缓解。</Text>
+      </Box>
+    </Box>
+
+    <Box style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
+      <Box style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.32)", borderRadius: 10, padding: 14 }}>
+        <Text style={{ color: "#F59E0B", fontSize: 16, fontWeight: 600 }}>R5　提示词语义变体</Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 14, lineHeight: 1.6, marginTop: 4 }}>同义改写可能绕过特征匹配，需持续补规则。</Text>
+      </Box>
+      <Box style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.32)", borderRadius: 10, padding: 14 }}>
+        <Text style={{ color: "#F59E0B", fontSize: 16, fontWeight: 600 }}>R6　外部服务投毒</Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 14, lineHeight: 1.6, marginTop: 4 }}>隔离挡住指令注入，挡不住脏数据，需校验上游。</Text>
+      </Box>
+      <Box style={{ background: "rgba(107,114,128,0.12)", border: "1px solid rgba(107,114,128,0.32)", borderRadius: 10, padding: 14 }}>
+        <Text style={{ color: "#D1D5DB", fontSize: 16, fontWeight: 600 }}>R7　没有速率限制</Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 14, lineHeight: 1.6, marginTop: 4 }}>模型调用无配额，公网部署前需加网关限流。</Text>
+      </Box>
+      <Box style={{ background: "rgba(107,114,128,0.12)", border: "1px solid rgba(107,114,128,0.32)", borderRadius: 10, padding: 14 }}>
+        <Text style={{ color: "#D1D5DB", fontSize: 16, fontWeight: 600 }}>R8　令牌在前端明文展示</Text>
+        <Text style={{ color: "#9CA3AF", fontSize: 14, lineHeight: 1.6, marginTop: 4 }}>演示用，明文可读，需改为服务端托管会话。</Text>
+      </Box>
+    </Box>
+  </Box>
+
+  <Box style={{ marginTop: 26, background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.35)", borderRadius: 12, padding: 22 }}>
+    <Text style={{ color: "#93C5FD", fontSize: 18, fontWeight: 600 }}>报告怎么写的</Text>
+    <Text style={{ color: "#9CA3AF", fontSize: 16, lineHeight: 1.8, marginTop: 10 }}>每项风险写清影响、现有缓解、残余风险与改进建议。同时列出未覆盖的测试范围：真实渗透测试、并发压测、密钥轮转流程、多实例部署下的审计一致性。</Text>
+  </Box>
+</Slide>

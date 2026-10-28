@@ -9,6 +9,7 @@ import { evaluate, specOf } from "./policy.ts";
 import { executeTool } from "./tools.ts";
 import { parseMcpToolName, ToolRegistry } from "../harness/registry.ts";
 import type { ExternalInvoker } from "../harness/types.ts";
+import { arbitrate, makeTrace, runAssessors, type SwarmStep } from "./swarm.ts";
 import type {
   BankSession,
   BankState,
@@ -732,6 +733,258 @@ export class BankAgent {
   }
 
   /** 外部确认入口：允许传入被替换的参数，用于验证令牌绑定是否生效。 */
+  /**
+   * 蜂群协同入口：意图官解析，三个评估官并行，仲裁官合并，执行与审计各归其位。
+   * 与 chat 的差别只在评估层：chat 用单次策略判定，swarmChat 用多角色并行评估后合并。
+   */
+  async swarmChat(sessionId: string, raw: string): Promise<ChatReply> {
+    const started = Date.now();
+    const session = this.session(sessionId);
+    const state = this.store.load();
+    const steps: SwarmStep[] = [];
+    const record = (step: SwarmStep): void => {
+      steps.push(step);
+    };
+
+    // 第一步：输入守卫，命中即拦，不进入后续角色。
+    const guard = guardInput(raw);
+    if (guard.attack) {
+      record({ role: "intent", label: "输入守卫", input: raw.slice(0, 40), output: guard.matched, level: "red", elapsedMs: 0, ok: true });
+      const decision = this.blockedDecision(`${guard.kind}：${guard.matched}`);
+      const audit = this.audit({
+        sessionId,
+        userText: raw,
+        tool: "none",
+        params: {},
+        decision: "blocked_injection",
+        level: "red",
+        rules: ["injection"],
+        result: "已拦截",
+      });
+      const trace = makeTrace(steps, started);
+      return {
+        ...this.reply({
+          session,
+          text: "这句话里包含改变规则的内容，我不会执行。请直接说要办什么业务。",
+          scene: "unknown",
+          decision,
+          audit,
+        }),
+        trace,
+      };
+    }
+
+    // 第二步：意图官。规则优先，规则不确定时交给模型，输出仍要过契约。
+    const intentStarted = Date.now();
+    const draft = this.drafts.get(sessionId);
+    let intent = parseIntent(raw, state);
+    let intentSource: "rule" | "model" = "rule";
+    if (intent.scene === "unknown" && draft !== undefined && typeof intent.slots.amountCents === "number") {
+      intent = {
+        ...draft,
+        slots: { ...draft.slots, amountCents: intent.slots.amountCents },
+        missing: [],
+        confidence: 0.8,
+        reason: "沿用上一轮草稿，仅补金额",
+      };
+    }
+    if ((intent.scene === "unknown" || intent.confidence < 0.7) && this.brain !== undefined && this.brain.available) {
+      try {
+        const parsed = await this.brain.interpret(raw, intent.scene === "unknown" ? undefined : intent.scene);
+        intent = parsed.intent;
+        intentSource = "model";
+      } catch {
+        // 模型不可用时保持规则结论，不阻塞对话。
+      }
+    }
+    record({
+      role: "intent",
+      label: "意图官",
+      input: raw.slice(0, 40),
+      output: `${intent.tool}（${intentSource === "rule" ? "规则" : "模型"}）`,
+      level: "none",
+      elapsedMs: Date.now() - intentStarted,
+      ok: intent.scene !== "unknown",
+    });
+
+    if (intent.scene === "unknown") {
+      const audit = this.audit({
+        sessionId,
+        userText: raw,
+        tool: "unknown",
+        params: {},
+        decision: "unmatched",
+        level: "unknown",
+        rules: ["intent-miss"],
+        result: "未识别",
+      });
+      return {
+        ...this.reply({
+          session,
+          text: "我没有听懂。可以试：查余额、分析账单、转给小王 500 元、取消云幕视频会员、锁卡、赎回理财。",
+          scene: "unknown",
+          decision: this.idleDecision("未识别意图"),
+          audit,
+          intentSource,
+        }),
+        trace: makeTrace(steps, started),
+      };
+    }
+
+    if (intent.missing.length > 0) {
+      this.drafts.set(sessionId, { tool: intent.tool, slots: intent.slots, missing: intent.missing, scene: intent.scene } as Draft);
+      const audit = this.audit({
+        sessionId,
+        userText: raw,
+        tool: intent.tool,
+        params: intent.slots as Record<string, unknown>,
+        decision: "need_slots",
+        level: "unknown",
+        rules: ["slot-missing"],
+        result: `缺失 ${intent.missing.join(",")}`,
+      });
+      return {
+        ...this.reply({
+          session,
+          text: this.askFor(intent.missing),
+          scene: intent.scene,
+          decision: this.idleDecision(`等待补充：${intent.missing.join("、")}`),
+          audit,
+          missing: intent.missing,
+          intentSource,
+        }),
+        trace: makeTrace(steps, started),
+      };
+    }
+
+    // 第三步：三个评估官并行，任一失败不拖累其余。
+    const assess = await runAssessors({
+      state,
+      policy: state.policy,
+      tool: intent.tool,
+      slots: intent.slots,
+      text: raw,
+    });
+    for (const step of assess.steps) record(step);
+    const final = arbitrate(assess.results);
+    record({
+      role: "arbiter",
+      label: "仲裁官",
+      input: `${assess.results.length} 份评估`,
+      output: `${final.level}｜${final.hits.map((hit) => hit.rule).join("、") || "无命中"}`,
+      level: final.level,
+      elapsedMs: 0,
+      ok: true,
+    });
+
+    const decision: PolicyDecision = {
+      level: final.level,
+      shape: final.blocked ? "blocked" : final.requiresConfirm ? "confirm" : "auto",
+      hits: final.hits,
+      summary: final.summary,
+      requiresConfirm: final.requiresConfirm,
+      blocked: final.blocked,
+    };
+
+    // 第四步：执行官。拦截、待确认、直接执行三条路。
+    if (decision.blocked) {
+      const audit = this.audit({
+        sessionId,
+        userText: raw,
+        tool: intent.tool,
+        params: intent.slots as Record<string, unknown>,
+        decision: "blocked_policy",
+        level: "red",
+        rules: decision.hits.map((hit) => hit.rule),
+        result: decision.summary,
+      });
+      record({ role: "executor", label: "执行官", input: intent.tool, output: "拦截，未执行", level: "red", elapsedMs: 0, ok: true });
+      record({ role: "auditor", label: "审计官", input: `seq ${audit.seq}`, output: "已留痕", level: "none", elapsedMs: 0, ok: true });
+      return {
+        ...this.reply({
+          session,
+          text: `这个操作我不能直接执行。${decision.hits.map((hit) => hit.detail).join("；")}。可以在手机上完成人脸验证后办理。`,
+          scene: intent.scene,
+          decision,
+          audit,
+          intentSource,
+        }),
+        trace: makeTrace(steps, started),
+      };
+    }
+
+    if (decision.requiresConfirm) {
+      const preview = this.preview(intent.tool, intent.slots);
+      const ticket = this.issuer.issue({
+        sessionId,
+        tool: intent.tool,
+        slots: intent.slots,
+        ttlSeconds: state.policy.confirmTtlSeconds,
+        preview,
+      });
+      session.pending = {
+        token: ticket.token,
+        digest: ticket.digest,
+        tool: intent.tool,
+        slots: intent.slots,
+        expiresAt: ticket.expiresAt,
+        preview,
+      };
+      const audit = this.audit({
+        sessionId,
+        userText: raw,
+        tool: intent.tool,
+        params: intent.slots as Record<string, unknown>,
+        decision: "pending_confirm",
+        level: "yellow",
+        rules: decision.hits.map((hit) => hit.rule),
+        tokenDigest: ticket.digest,
+        result: `等待确认：${preview}`,
+      });
+      record({ role: "executor", label: "执行官", input: intent.tool, output: "签发确认令牌，等待用户", level: "yellow", elapsedMs: 0, ok: true });
+      record({ role: "auditor", label: "审计官", input: `seq ${audit.seq}`, output: "已留痕", level: "none", elapsedMs: 0, ok: true });
+      return {
+        ...this.reply({
+          session,
+          text: `准备执行：${preview}。需要你确认，${state.policy.confirmTtlSeconds} 秒内有效。`,
+          scene: intent.scene,
+          decision,
+          audit,
+          confirmation: ticket,
+          intentSource,
+        }),
+        trace: makeTrace(steps, started),
+      };
+    }
+
+    const execution = await this.run(intent.tool, intent.slots, this.store.load());
+    const audit = this.audit({
+      sessionId,
+      userText: raw,
+      tool: intent.tool,
+      params: intent.slots as Record<string, unknown>,
+      decision: execution.ok ? "swarm_execute" : "swarm_execute_failed",
+      level: "green",
+      rules: decision.hits.map((hit) => hit.rule),
+      result: execution.ok ? execution.message : (execution.error ?? "执行失败"),
+    });
+    record({ role: "executor", label: "执行官", input: intent.tool, output: execution.message.slice(0, 60), level: "green", elapsedMs: 0, ok: execution.ok });
+    record({ role: "auditor", label: "审计官", input: `seq ${audit.seq}`, output: "已留痕", level: "none", elapsedMs: 0, ok: true });
+
+    return {
+      ...this.reply({
+        session,
+        text: execution.ok ? execution.message : (execution.error ?? "执行失败"),
+        scene: intent.scene,
+        decision,
+        audit,
+        execution,
+        intentSource,
+      }),
+      trace: makeTrace(steps, started),
+    };
+  }
+
   async confirm(sessionId: string, token: string, override?: IntentSlots): Promise<ChatReply> {
     const state = this.store.load();
     const session = this.session(sessionId);

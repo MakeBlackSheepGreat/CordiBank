@@ -1,0 +1,20 @@
+<Slide style={{ background: "#0B1220", padding: "56px 72px", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+  <Text style={{ color: "#6B7280", fontSize: 14, letterSpacing: 5 }}>结语</Text>
+  <Text style={{ color: "#F7F4EC", fontSize: 56, fontWeight: 700, lineHeight: 1.35, marginTop: 28, textAlign: "center" }}>把一件事拆给多个专职角色，<br />比换更强的模型更可靠</Text>
+  <Box style={{ width: 96, height: 6, background: "#22C55E", marginTop: 36 }} />
+  <Box style={{ display: "flex", flexDirection: "row", gap: 44, marginTop: 40 }}>
+    <Box style={{ textAlign: "center" }}>
+      <Text style={{ color: "#22C55E", fontSize: 34, fontWeight: 700, fontFamily: "JetBrains Mono, monospace" }}>五角色</Text>
+      <Text style={{ color: "#6B7280", fontSize: 15, marginTop: 8 }}>分工与仲裁</Text>
+    </Box>
+    <Box style={{ textAlign: "center" }}>
+      <Text style={{ color: "#F59E0B", fontSize: 34, fontWeight: 700, fontFamily: "JetBrains Mono, monospace" }}>三色分级</Text>
+      <Text style={{ color: "#6B7280", fontSize: 15, marginTop: 8 }}>绿黄红与令牌</Text>
+    </Box>
+    <Box style={{ textAlign: "center" }}>
+      <Text style={{ color: "#3B82F6", fontSize: 34, fontWeight: 700, fontFamily: "JetBrains Mono, monospace" }}>哈希链</Text>
+      <Text style={{ color: "#6B7280", fontSize: 15, marginTop: 8 }}>全程可追溯</Text>
+    </Box>
+  </Box>
+  <Text style={{ color: "#9CA3AF", fontSize: 18, marginTop: 44 }}>代码、文档、部署说明与全部测试用例随提交包提供，可在评委机器上复跑</Text>
+</Slide>

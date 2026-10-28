@@ -1,0 +1,36 @@
+<Slide style={{ background: "#0B1220", padding: "42px 72px 40px", display: "flex", flexDirection: "column" }}>
+  <Text style={{ color: "#6B7280", fontSize: 14, letterSpacing: 3 }}>实测数据 · 全部可复现</Text>
+  <Text style={{ color: "#F7F4EC", fontSize: 34, fontWeight: 700, marginTop: 12 }}>三个数字说明这套系统做到了什么</Text>
+  <Box style={{ display: "flex", flexDirection: "row", gap: 32, marginTop: 40 }}>
+    <Box style={{ flex: 1, borderTop: "3px solid #22C55E", paddingTop: 22 }}>
+      <Text style={{ color: "#22C55E", fontSize: 96, fontWeight: 700, fontFamily: "JetBrains Mono, monospace", lineHeight: 1 }}>91</Text>
+      <Text style={{ color: "#F7F4EC", fontSize: 22, fontWeight: 600, marginTop: 14 }}>项自动化测试</Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 16, lineHeight: 1.7, marginTop: 10 }}>单元、集成、蜂群协同、真实模型四层。红队四十条用例覆盖直接注入、间接注入、越权与正常请求。</Text>
+    </Box>
+    <Box style={{ flex: 1, borderTop: "3px solid #F59E0B", paddingTop: 22 }}>
+      <Text style={{ color: "#F59E0B", fontSize: 96, fontWeight: 700, fontFamily: "JetBrains Mono, monospace", lineHeight: 1 }}>21</Text>
+      <Text style={{ color: "#F7F4EC", fontSize: 22, fontWeight: 600, marginTop: 14 }}>个内置工具</Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 16, lineHeight: 1.7, marginTop: 10 }}>六个赛题场景全部覆盖，另有四个外部服务提供十三个工具，经同一张注册表并入模型工具集。</Text>
+    </Box>
+    <Box style={{ flex: 1, borderTop: "3px solid #EF4444", paddingTop: 22 }}>
+      <Text style={{ color: "#EF4444", fontSize: 96, fontWeight: 700, fontFamily: "JetBrains Mono, monospace", lineHeight: 1 }}>100%</Text>
+      <Text style={{ color: "#F7F4EC", fontSize: 22, fontWeight: 600, marginTop: 14 }}>注入拦截率</Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 16, lineHeight: 1.7, marginTop: 10 }}>四类注入特征全部命中，正常请求误拦为零。不可逆操作百分之百判红，不给确认通道。</Text>
+    </Box>
+  </Box>
+
+  <Box style={{ display: "flex", flexDirection: "row", gap: 24, marginTop: 34, borderTop: "1px solid #243044", paddingTop: 22 }}>
+    <Box style={{ flex: 1, background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 10, padding: 18 }}>
+      <Text style={{ color: "#22C55E", fontSize: 17, fontWeight: 700 }}>怎么跑</Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 15, lineHeight: 1.65, marginTop: 6 }}>runtime 目录下执行测试命令，输出逐条用例名与通过状态。</Text>
+    </Box>
+    <Box style={{ flex: 1, background: "rgba(245,158,11,0.07)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 10, padding: 18 }}>
+      <Text style={{ color: "#F59E0B", fontSize: 17, fontWeight: 700 }}>在哪里看</Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 15, lineHeight: 1.65, marginTop: 6 }}>控制台「跑红队集」与「工具清单」两个面板直接给出统计数字。</Text>
+    </Box>
+    <Box style={{ flex: 1, background: "rgba(59,130,246,0.07)", border: "1px solid rgba(59,130,246,0.3)", borderRadius: 10, padding: 18 }}>
+      <Text style={{ color: "#93C5FD", fontSize: 17, fontWeight: 700 }}>证据在哪</Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 15, lineHeight: 1.65, marginTop: 6 }}>《部署说明》第八节列出全部验证命令与完整输出，评委可原样复跑。</Text>
+    </Box>
+  </Box>
+</Slide>

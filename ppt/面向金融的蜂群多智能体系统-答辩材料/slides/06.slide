@@ -1,0 +1,33 @@
+<Slide style={{ background: "#0B1220", padding: "44px 72px", display: "flex", flexDirection: "column" }}>
+  <Text style={{ color: "#6B7280", fontSize: 14, letterSpacing: 3 }}>安全设计 · 一</Text>
+  <Text style={{ color: "#F7F4EC", fontSize: 34, fontWeight: 700, marginTop: 10 }}>权限分级：绿黄红三色，四维叠加</Text>
+
+  <Box style={{ display: "flex", flexDirection: "row", gap: 24, marginTop: 32 }}>
+    <Box style={{ flex: 1, background: "rgba(34,197,94,0.10)", border: "1px solid rgba(34,197,94,0.5)", borderRadius: 12, padding: 24, height: 300 }}>
+      <Text style={{ color: "#22C55E", fontSize: 26, fontWeight: 700 }}>绿　直连</Text>
+      <Text style={{ color: "#D1D5DB", fontSize: 17, lineHeight: 1.7, marginTop: 12 }}>只读查询，无金额变动，可逆或无代价。查余额、看账单、列订阅，一次请求返回结果。</Text>
+      <Text style={{ color: "#6B7280", fontSize: 15, marginTop: 16 }}>执行前无二次确认</Text>
+    </Box>
+    <Box style={{ flex: 1, background: "rgba(245,158,11,0.10)", border: "1px solid rgba(245,158,11,0.5)", borderRadius: 12, padding: 24, height: 300 }}>
+      <Text style={{ color: "#F59E0B", fontSize: 26, fontWeight: 700 }}>黄　令牌</Text>
+      <Text style={{ color: "#D1D5DB", fontSize: 17, lineHeight: 1.7, marginTop: 12 }}>写操作但可控可逆。转账、取消订阅、锁卡，先签发一次性确认令牌，参数摘要一致才执行。</Text>
+      <Text style={{ color: "#6B7280", fontSize: 15, marginTop: 16 }}>须用户明确确认一次</Text>
+    </Box>
+    <Box style={{ flex: 1, background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.5)", borderRadius: 12, padding: 24, height: 300 }}>
+      <Text style={{ color: "#EF4444", fontSize: 26, fontWeight: 700 }}>红　拦截</Text>
+      <Text style={{ color: "#D1D5DB", fontSize: 17, lineHeight: 1.7, marginTop: 12 }}>不可逆或越权。挂失、赎回、解冻、冻结、越界金额，一律拒绝执行，不提供确认通道。</Text>
+      <Text style={{ color: "#6B7280", fontSize: 15, marginTop: 16 }}>任何确认都不能放行</Text>
+    </Box>
+  </Box>
+
+  <Box style={{ display: "flex", flexDirection: "row", gap: 24, marginTop: 28 }}>
+    <Box style={{ flex: 1.4, borderTop: "2px solid #374151", paddingTop: 18 }}>
+      <Text style={{ color: "#F7F4EC", fontSize: 19, fontWeight: 600 }}>四个维度叠加判定</Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 16, lineHeight: 1.8, marginTop: 10 }}>操作类型、涉及金额、收款人身份、可逆性、发生频次。任一维度命中更高等级，等级取最高。每条命中都带规则编号与具体说明，不只给一个颜色。</Text>
+    </Box>
+    <Box style={{ flex: 1, borderTop: "2px solid #374151", paddingTop: 18 }}>
+      <Text style={{ color: "#F7F4EC", fontSize: 19, fontWeight: 600 }}>令牌四绑定</Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 16, lineHeight: 1.8, marginTop: 10 }}>绑定会话、工具、参数摘要、过期时间。执行前重算摘要比对，参数被改过则令牌失效。</Text>
+    </Box>
+  </Box>
+</Slide>

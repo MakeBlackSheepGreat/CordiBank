@@ -1,0 +1,65 @@
+<Slide style={{ background: "#0B1220", padding: "42px 72px 40px", display: "flex", flexDirection: "column" }}>
+  <Text style={{ color: "#F59E0B", fontSize: 15, letterSpacing: 5, fontWeight: 600 }}>2026 FINTECHATHON · 人工智能赛道</Text>
+  <Text style={{ color: "#F7F4EC", fontSize: 66, fontWeight: 700, lineHeight: 1.2, marginTop: 20 }}>面向金融的蜂群多智能体系统</Text>
+  <Box style={{ width: 96, height: 6, background: "#22C55E", marginTop: 16 }} />
+  <Text style={{ color: "#9CA3AF", fontSize: 21, lineHeight: 1.6, marginTop: 16 }}>五个角色分工完成一次银行事务，从听懂到办完全程可追溯</Text>
+
+  <Box style={{ display: "flex", flexDirection: "row", gap: 14, marginTop: 30 }}>
+    <Box style={{ flex: 1, background: "rgba(34,197,94,0.10)", border: "1px solid rgba(34,197,94,0.45)", borderRadius: 10, padding: "22px 18px" }}>
+      <Text style={{ color: "#22C55E", fontSize: 20, fontWeight: 700 }}>意图官</Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 14, lineHeight: 1.55, marginTop: 6 }}>听懂诉求，抽出工具与槽位</Text>
+    </Box>
+    <Box style={{ flex: 1, background: "rgba(245,158,11,0.10)", border: "1px solid rgba(245,158,11,0.45)", borderRadius: 10, padding: "26px 18px" }}>
+      <Text style={{ color: "#F59E0B", fontSize: 20, fontWeight: 700 }}>风控官</Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 14, lineHeight: 1.55, marginTop: 6 }}>四维叠加判风险等级</Text>
+    </Box>
+    <Box style={{ flex: 1, background: "rgba(245,158,11,0.10)", border: "1px solid rgba(245,158,11,0.45)", borderRadius: 10, padding: "26px 18px" }}>
+      <Text style={{ color: "#F59E0B", fontSize: 20, fontWeight: 700 }}>合规官</Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 14, lineHeight: 1.55, marginTop: 6 }}>查收款人来源与白名单</Text>
+    </Box>
+    <Box style={{ flex: 1, background: "rgba(107,114,128,0.12)", border: "1px solid rgba(107,114,128,0.45)", borderRadius: 10, padding: "26px 18px" }}>
+      <Text style={{ color: "#D1D5DB", fontSize: 20, fontWeight: 700 }}>体验官</Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 14, lineHeight: 1.55, marginTop: 6 }}>指出缺什么并给替代路径</Text>
+    </Box>
+    <Box style={{ flex: 1, background: "rgba(59,130,246,0.12)", border: "1px solid rgba(59,130,246,0.45)", borderRadius: 10, padding: "26px 18px" }}>
+      <Text style={{ color: "#93C5FD", fontSize: 20, fontWeight: 700 }}>仲裁官</Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 14, lineHeight: 1.55, marginTop: 6 }}>取最高风险并合并理由</Text>
+    </Box>
+  </Box>
+
+  <Box style={{ display: "flex", flexDirection: "row", gap: 14, marginTop: 16 }}>
+    <Box style={{ flex: 1, background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 10, padding: "26px 18px" }}>
+      <Text style={{ color: "#22C55E", fontSize: 20, fontWeight: 700 }}>执行官</Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 14, lineHeight: 1.55, marginTop: 6 }}>按确认令牌执行写操作</Text>
+    </Box>
+    <Box style={{ flex: 1, background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 10, padding: "26px 18px" }}>
+      <Text style={{ color: "#22C55E", fontSize: 20, fontWeight: 700 }}>审计官</Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 14, lineHeight: 1.55, marginTop: 6 }}>写入哈希链，序号递增</Text>
+    </Box>
+    <Box style={{ flex: 1.4, background: "rgba(107,114,128,0.10)", border: "1px solid rgba(107,114,128,0.3)", borderRadius: 10, padding: "26px 18px" }}>
+      <Text style={{ color: "#D1D5DB", fontSize: 20, fontWeight: 700 }}>六个赛题场景全部打通</Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 14, lineHeight: 1.55, marginTop: 6 }}>转账、账单、理财、卡片、订阅、跨场景联动</Text>
+    </Box>
+  </Box>
+
+  <Box style={{ display: "flex", flexDirection: "row", gap: 14, marginTop: 18, borderTop: "1px solid #243044", paddingTop: 22 }}>
+    <Box style={{ flex: 1 }}>
+      <Text style={{ color: "#6B7280", fontSize: 12, letterSpacing: 2 }}>团队</Text>
+      <Text style={{ color: "#D1D5DB", fontSize: 16, marginTop: 5 }}>CordiBank 蜂群项目组</Text>
+    </Box>
+    <Box style={{ flex: 1 }}>
+      <Text style={{ color: "#6B7280", fontSize: 12, letterSpacing: 2 }}>规模</Text>
+      <Text style={{ color: "#D1D5DB", fontSize: 16, marginTop: 5 }}>91 项测试全通，21 个内置工具</Text>
+    </Box>
+    <Box style={{ flex: 1 }}>
+      <Text style={{ color: "#6B7280", fontSize: 12, letterSpacing: 2 }}>交付</Text>
+      <Text style={{ color: "#D1D5DB", fontSize: 16, marginTop: 5 }}>代码、文档、部署说明、测试用例</Text>
+    </Box>
+    <Box style={{ flex: 1 }}>
+      <Text style={{ color: "#6B7280", fontSize: 12, letterSpacing: 2 }}>时间</Text>
+      <Text style={{ color: "#D1D5DB", fontSize: 16, marginTop: 5 }}>2026 年 10 月</Text>
+    </Box>
+  </Box>
+
+  <Text style={{ color: "#4B5563", fontSize: 14, marginTop: 16 }}>本项目使用 CordiSwarm 智能体编排框架构建，运行于 Node 22 与 TypeScript 之上，前端为 Vue 3 与 Vite</Text>
+</Slide>
