@@ -21,7 +21,7 @@
       "page_number": 1,
       "role": "cover",
       "title": "面向金融的蜂群多智能体系统",
-      "core_message": "五个角色分工完成一次银行事务，从听懂到办完全程可追溯",
+      "core_message": "七个角色分工完成一次银行事务，从听懂到办完全程可追溯",
       "key_points": [
         "2026 FINTECHATHON · 人工智能赛道",
         "意图官",
@@ -54,7 +54,7 @@
           "native_intent": "native",
           "source_ref": "s01.core_message",
           "confirmation_status": "confirmed",
-          "text": "五个角色分工完成一次银行事务，从听懂到办完全程可追溯"
+          "text": "七个角色分工完成一次银行事务，从听懂到办完全程可追溯"
         },
         {
           "id": "e01-roles",
@@ -370,14 +370,14 @@
       "id": "s04",
       "page_number": 4,
       "role": "architecture",
-      "title": "五个角色，各管一件事，结论汇到仲裁",
+      "title": "七个角色，各管一件事，结论汇到仲裁",
       "core_message": "评估并行、仲裁合并、任一否决即拦",
       "key_points": [
-        "意图官",
-        "风控官",
-        "合规官",
-        "体验官",
-        "仲裁官"
+        "意图官　听懂诉求，抽出工具与槽位，缺参数就问",
+        "风控官　按策略判风险，四维叠加，输出命中规则",
+        "合规官　查收款人来源，查工具白名单，只做否决",
+        "体验官　判断还缺什么，给替代路径，不参与风险",
+        "三路并行　同时执行，任一失败只降级该维度，其余照常"
       ],
       "source_refs": [
         "runtime/src/bank/swarm.ts",
@@ -388,7 +388,7 @@
       "visual_brief": "自上而下的拓扑图：意图官单卡置顶，向下箭头标注派发，中间三张等宽并排卡为三评估官，再向下箭头标注三份结论并行汇入，仲裁官单卡置底，下方并列执行官与审计官两卡。",
       "image_file": "pages/004.png",
       "image_status": "approved",
-      "speaker_notes": "五个角色各管一件事。风控、合规、体验三个评估官并行跑，任一失败不拖累其余。仲裁官取最高风险，任一否决即拦。",
+      "speaker_notes": "七个角色各管一件事。风控、合规、体验三个评估官并行跑，任一失败不拖累其余。仲裁官取最高风险，任一否决即拦。模型只在意图官一环出现，风险判定和执行都在代码层。",
       "elements": [
         {
           "id": "e04-intent",
@@ -452,6 +452,33 @@
           "source_ref": "s04.key_points[4]",
           "confirmation_status": "confirmed",
           "text": "审计官　写入哈希链"
+        },
+        {
+          "id": "e04-parallel",
+          "kind": "text",
+          "role": "node",
+          "native_intent": "native",
+          "source_ref": "s04.key_points[4]",
+          "confirmation_status": "confirmed",
+          "text": "三路并行　同时执行，任一失败只降级该维度，其余照常"
+        },
+        {
+          "id": "e04-model",
+          "kind": "text",
+          "role": "body",
+          "native_intent": "native",
+          "source_ref": "s04.explanation",
+          "confirmation_status": "confirmed",
+          "text": "模型只在意图官解析诉求与选工具，风险判定与执行全在代码层。"
+        },
+        {
+          "id": "e04-trace",
+          "kind": "text",
+          "role": "body",
+          "native_intent": "native",
+          "source_ref": "s04.explanation",
+          "confirmation_status": "confirmed",
+          "text": "七个角色的结论与耗时都进审计，界面上可逐条展开核对。"
         }
       ],
       "display": {
@@ -459,19 +486,19 @@
           {
             "claim": "core_message",
             "element_ids": [
-              "e04-arb"
+              "e04-parallel"
             ]
           },
           {
             "claim": "explanation",
             "element_ids": [
-              "e04-exec"
+              "e04-parallel"
             ]
           },
           {
             "claim": "boundary",
             "element_ids": [
-              "e04-ux"
+              "e04-model"
             ]
           },
           {
@@ -489,34 +516,38 @@
           {
             "claim": "key_points/0",
             "element_ids": [
-              "e04-intent"
+              "e04-model"
             ]
           },
           {
             "claim": "key_points/1",
             "element_ids": [
-              "e04-risk"
+              "e04-model"
             ]
           },
           {
             "claim": "key_points/2",
             "element_ids": [
-              "e04-comp"
+              "e04-model"
             ]
           },
           {
             "claim": "key_points/3",
             "element_ids": [
-              "e04-ux"
+              "e04-model"
             ]
           },
           {
             "claim": "key_points/4",
             "element_ids": [
-              "e04-arb"
+              "e04-parallel"
             ]
           }
         ]
+      },
+      "density": {
+        "mode": "detailed",
+        "reason": "架构页需并列意图官、三评估官与并行机制共五项，构成完整分工链路，缺任一项则拓扑不成立"
       }
     },
     {
@@ -1772,9 +1803,9 @@
       "page_number": 13,
       "role": "summary",
       "title": "把一件事拆给多个专职角色，比换更强的模型更可靠",
-      "core_message": "五角色分工、三色分级、哈希链构成整套机制",
+      "core_message": "七角色分工、三色分级、哈希链构成整套机制",
       "key_points": [
-        "五角色",
+        "七个角色",
         "三色分级",
         "哈希链"
       ],
@@ -1782,7 +1813,7 @@
         "docs/01-项目简介.md"
       ],
       "explanation": "收束页只回扣主线，不新增论证。",
-      "visual_brief": "主句居中 56px，下方绿色短横线，再下三个等宽数字块横排标五角色、三色分级、哈希链，底部一行小字说明交付内容。",
+      "visual_brief": "主句居中 56px，下方绿色短横线，再下三个等宽数字块横排标七角色、三色分级、哈希链，底部一行小字说明交付内容。",
       "image_file": "pages/013.png",
       "image_status": "approved",
       "speaker_notes": "把一件事拆给多个专职角色，比换更强的模型更可靠。谢谢各位评委。",
@@ -1803,7 +1834,7 @@
           "native_intent": "native",
           "source_ref": "s13.key_points[0]",
           "confirmation_status": "confirmed",
-          "text": "五角色"
+          "text": "七个角色"
         },
         {
           "id": "e13-note",

@@ -7,7 +7,7 @@
 
   <Box style={{ display: "flex", flexDirection: "row", gap: 22 }}>
     <Box style={{ flex: 1, background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.32)", borderRadius: 11, padding: "20px 22px" }}>
-      <Text style={{ color: "#22C55E", fontSize: 30, fontWeight: 700, fontFamily: "Consolas, monospace" }}>五角色</Text>
+      <Text style={{ color: "#22C55E", fontSize: 30, fontWeight: 700, fontFamily: "Consolas, monospace" }}>七个角色</Text>
       <Text style={{ color: "#9CA3AF", fontSize: 16, lineHeight: 1.6, marginTop: 8 }}>分工与仲裁</Text>
       <Text style={{ color: "#6B7280", fontSize: 14, lineHeight: 1.6, marginTop: 8 }}>意图、风控、合规、体验并行评估，仲裁取最高</Text>
     </Box>

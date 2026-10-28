@@ -2,7 +2,7 @@
   <Text style={{ color: "#F59E0B", fontSize: 15, letterSpacing: 5, fontWeight: 600 }}>2026 FINTECHATHON · 人工智能赛道</Text>
   <Text style={{ color: "#F7F4EC", fontSize: 66, fontWeight: 700, lineHeight: 1.2, marginTop: 20 }}>面向金融的蜂群多智能体系统</Text>
   <Box style={{ width: 96, height: 6, background: "#22C55E", marginTop: 16 }} />
-  <Text style={{ color: "#9CA3AF", fontSize: 21, lineHeight: 1.6, marginTop: 16 }}>五个角色分工完成一次银行事务，从听懂到办完全程可追溯</Text>
+  <Text style={{ color: "#9CA3AF", fontSize: 21, lineHeight: 1.6, marginTop: 16 }}>七个角色分工完成一次银行事务，从听懂到办完全程可追溯</Text>
 
   <Box style={{ display: "flex", flexDirection: "row", gap: 14, marginTop: 30 }}>
     <Box style={{ flex: 1, background: "rgba(34,197,94,0.10)", border: "1px solid rgba(34,197,94,0.45)", borderRadius: 10, padding: "22px 18px" }}>
