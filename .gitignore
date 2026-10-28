@@ -5,6 +5,10 @@ web/node_modules/
 runtime/dist/
 web/dist/
 
+# 前端构建产物随源码包发布，解压即可打开
+!web/dist/
+!web/dist/**
+
 # 运行时数据：银行状态、审计链、确认密钥、MCP 清单
 runtime/store/
 _dev-store/
