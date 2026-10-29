@@ -27,6 +27,10 @@ ppt/**/.slidep/
 # 赛题交付产物：由 scripts/md2docx.py 生成
 deliverables/
 
+# 桌面应用构建产物
+desktop/release/
+desktop/.electron-cache/
+
 # 测试缓存
 .vitest-cache/
 

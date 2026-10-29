@@ -1,0 +1,98 @@
+{
+  "name": "cordibank-desktop",
+  "version": "1.0.0",
+  "description": "面向金融的蜂群多智能体系统 桌面应用",
+  "author": "CordiBank 蜂群项目组",
+  "license": "MIT",
+  "private": true,
+  "main": "src/main.cjs",
+  "scripts": {
+    "build:runtime": "node scripts/build-runtime.mjs",
+    "build:web": "node scripts/build-web.mjs",
+    "prepare:assets": "npm run build:runtime && npm run build:web",
+    "start": "npm run prepare:assets && electron .",
+    "pack": "npm run prepare:assets && electron-builder --dir",
+    "dist": "npm run prepare:assets && electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "45.1.0",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "asia.liteblacksheep.cordibank",
+    "productName": "CordiBank 蜂群银行助手",
+    "copyright": "Copyright (c) 2026 CordiBank 蜂群项目组",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "electronDist": "./.electron-cache/electron-v45.1.0-win32-x64.zip",
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "src/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../runtime/dist",
+        "to": "runtime"
+      },
+      {
+        "from": "../runtime/node_modules/@cordisjs",
+        "to": "runtime/node_modules/@cordisjs"
+      },
+      {
+        "from": "../runtime/node_modules/yaml",
+        "to": "runtime/node_modules/yaml"
+      },
+      {
+        "from": "../runtime/node_modules/cosmokit",
+        "to": "runtime/node_modules/cosmokit"
+      },
+      {
+        "from": "../web/dist",
+        "to": "web"
+      },
+      {
+        "from": "../mcp",
+        "to": "mcp",
+        "filter": [
+          "*.mjs",
+          "servers.json"
+        ]
+      },
+      {
+        "from": "../skills",
+        "to": "skills"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "CordiBank 蜂群银行助手",
+      "installerLanguages": [
+        "zh_CN"
+      ],
+      "deleteAppDataOnUninstall": false
+    },
+    "asar": false
+  }
+}
