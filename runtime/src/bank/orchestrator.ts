@@ -3,6 +3,7 @@ import { builtinToolDescriptors } from "./builtin-tools.ts";
 import { ConfirmIssuer, digestOf } from "./confirm.ts";
 import { BankStore, yuan } from "./data.ts";
 import { checkPayeeOrigin, guardInput, guardOutput, scanUntrusted } from "./guard.ts";
+import type { InjectionClassifier } from "./classifier.ts";
 import { extractAmount, extractPayee, parseIntent } from "./intent.ts";
 import type { ModelBrain } from "./model-brain.ts";
 import { evaluate, specOf } from "./policy.ts";
@@ -47,6 +48,8 @@ export interface BankAgentOptions {
   registry?: ToolRegistry;
   /** 外部工具调用器：把 mcp__ 前缀的工具转给对应服务。 */
   invoker?: ExternalInvoker;
+  /** 输入侧语义分类器：正则守卫未命中时按注入语义裁决，未配置则跳过。 */
+  classifier?: InjectionClassifier;
 }
 
 /** 银行智能体编排：守卫、解析、判定、确认、执行、审计六段式。 */
@@ -55,6 +58,7 @@ export class BankAgent {
   private readonly chain: AuditChain;
   private readonly issuer: ConfirmIssuer;
   private readonly brain: ModelBrain | undefined;
+  private readonly classifier: InjectionClassifier | undefined;
   private readonly intentMode: "rule" | "hybrid" | "model";
   private readonly toolScope: "all" | "scene";
   private readonly invoker: ExternalInvoker | undefined;
@@ -72,6 +76,7 @@ export class BankAgent {
     this.invoker = options.invoker;
     this.tools = options.registry ?? new ToolRegistry();
     if (options.registry === undefined) this.tools.registerMany(builtinToolDescriptors());
+    this.classifier = options.classifier;
   }
 
   /** 工具清单快照：含内置与已接入的外部工具。 */
@@ -309,7 +314,14 @@ export class BankAgent {
       .join(" ");
 
     // 第一段：输入守卫。命中注入特征直接拦截，不进入意图解析。
-    const verdict = guardInput(text);
+    let verdict = guardInput(text);
+    if (!verdict.attack && this.classifier !== undefined) {
+      // 正则未命中再过语义分类：同义改写的注入由检查单裁决，不走关键词。
+      const semantic = await this.classifier.inspect(text);
+      if (semantic.injection) {
+        verdict = { attack: true, kind: semantic.kind, matched: `语义识别：${semantic.reason}`, sanitized: verdict.sanitized };
+      }
+    }
     if (verdict.attack) {
       const decision = this.blockedDecision(verdict.matched);
       const audit = this.audit({
@@ -747,7 +759,13 @@ export class BankAgent {
     };
 
     // 第一步：输入守卫，命中即拦，不进入后续角色。
-    const guard = guardInput(raw);
+    let guard = guardInput(raw);
+    if (!guard.attack && this.classifier !== undefined) {
+      const semantic = await this.classifier.inspect(raw);
+      if (semantic.injection) {
+        guard = { attack: true, kind: semantic.kind, matched: `语义识别：${semantic.reason}`, sanitized: guard.sanitized };
+      }
+    }
     if (guard.attack) {
       record({ role: "intent", label: "输入守卫", input: raw.slice(0, 40), output: guard.matched, level: "red", elapsedMs: 0, ok: true });
       const decision = this.blockedDecision(`${guard.kind}：${guard.matched}`);
@@ -1080,7 +1098,10 @@ export class BankAgent {
   }
 
   auditLog(sessionId?: string, limit = 50): Record<string, unknown> {
-    const records = this.chain.read(limit).filter((item) => sessionId === undefined || item.sessionId === sessionId);
+    // 先取全链再按会话过滤，避免 limit 窗口把较早会话的留痕丢掉；limit 只限制过滤后的条数
+    const all = this.chain.read(Number.MAX_SAFE_INTEGER);
+    const matched = sessionId === undefined ? all : all.filter((item) => item.sessionId === sessionId);
+    const records = matched.slice(-limit);
     return { records, chain: this.chain.verify() };
   }
 

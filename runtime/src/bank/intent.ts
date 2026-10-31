@@ -47,23 +47,30 @@ function stripIdentifiers(text: string): string {
   return text.replace(/1[3-9]\d{9}/g, " ").replace(/\d{12,}/g, " ");
 }
 
-/** 金额提取：优先阿拉伯数字，其次中文数字，单位支持万与千。 */
+function scaledCents(value: number, unit: string | undefined): Cents {
+  const scaled = unit === "万" ? value * 10000 : unit === "千" ? value * 1000 : value;
+  return Math.round(scaled * 100);
+}
+
+/** 金额提取：优先带货币单位（元/块）的数字，避免把「1 号」「90 天」当金额；无单位才退回裸数字。 */
 export function extractAmount(text: string): Cents | null {
-  const cleaned = stripIdentifiers(text);
-  const arabic = cleaned.match(/(\d+(?:\.\d+)?)\s*(万|千)?/);
-  if (arabic !== null) {
-    const value = Number(arabic[1]);
-    const unit = arabic[2];
-    const scaled = unit === "万" ? value * 10000 : unit === "千" ? value * 1000 : value;
-    return Math.round(scaled * 100);
+  const cleaned = stripIdentifiers(text)
+    .replace(/一点(?!([零一二三四五六七八九]))/g, " ")
+    .replace(/一些/g, " ");
+  const arabicWithUnit = cleaned.match(/(\d+(?:\.\d+)?)\s*(万|千)?\s*(?:元|块|块钱)/);
+  if (arabicWithUnit !== null) return scaledCents(Number(arabicWithUnit[1]), arabicWithUnit[2]);
+  const chineseWithUnit = cleaned.match(/([零一二三四五六七八九十百千万两]{2,})\s*(万|千)?\s*(?:元|块|块钱)/);
+  if (chineseWithUnit !== null) {
+    const value = cnToNumber(chineseWithUnit[1]);
+    if (value !== null) return scaledCents(value, chineseWithUnit[2]);
   }
+  const arabic = cleaned.match(/(\d+(?:\.\d+)?)\s*(万|千)?/);
+  if (arabic !== null) return scaledCents(Number(arabic[1]), arabic[2]);
   const chinese = cleaned.match(/([零一二三四五六七八九十百千万两]{2,})\s*(万|千)?/);
   if (chinese !== null) {
     const value = cnToNumber(chinese[1]);
     if (value === null) return null;
-    const unit = chinese[2];
-    const scaled = unit === "万" ? value * 10000 : unit === "千" ? value * 1000 : value;
-    return Math.round(scaled * 100);
+    return scaledCents(value, chinese[2]);
   }
   return null;
 }
@@ -80,7 +87,10 @@ export function extractPayee(text: string, state: BankState): string | undefined
     .filter((name) => name !== "")
     .sort((a, b) => b.length - a.length);
   for (const name of names) {
-    if (text.includes(name)) return name;
+    if (text.includes(name)) {
+      const contact = state.contacts.find((item) => item.name === name || item.remark === name);
+      return contact === undefined ? name : contact.name;
+    }
   }
   const guessed = text.match(/(?:转(?:账)?(?:给)?|给|向|帮)\s*([\u4e00-\u9fa5]{2,4})(?=\s*(?:转|[\d一二三四五六七八九十百千万两]))/);
   if (guessed !== null) return guessed[1];
@@ -176,7 +186,7 @@ const RULES: ReadonlyArray<Rule> = [
   {
     scene: "subscription",
     tool: "list_subscriptions",
-    pattern: /(订阅|代扣|续费|自动扣费|会员|退订)/,
+    pattern: /(订阅|代扣|续费|扣费|自动扣费|会员|退订)/,
     build: (text, state) => {
       if (/(取消|退订|关掉|停掉|关闭)/.test(text)) {
         const name = matchSubscription(text, state);
@@ -184,7 +194,7 @@ const RULES: ReadonlyArray<Rule> = [
           ? { slots: {}, missing: ["subscriptionName"], tool: "cancel_subscription" }
           : { slots: { subscriptionName: name }, missing: [], tool: "cancel_subscription" };
       }
-      if (/提醒|即将|快到期|要扣费|什么时候扣|哪天扣|要续费|续费日/.test(text)) {
+      if (/提醒|即将|快到期|要扣费|什么时候扣|哪天扣|要续费|续费日|下期|日历/.test(text)) {
         return { slots: {}, missing: [], tool: "subscription_reminder" };
       }
       return { slots: {}, missing: [], tool: "list_subscriptions" };
@@ -193,21 +203,21 @@ const RULES: ReadonlyArray<Rule> = [
   {
     scene: "card",
     tool: "list_cards",
-    pattern: /(卡片|信用卡|借记卡|卡状态|额度|限额|挂失|锁卡|丢卡|申请卡|办卡)/,
+    pattern: /(卡片|信用卡|借记卡|卡状态|额度|限额|挂失|锁卡|丢卡|申卡|新卡|解锁|申请卡|办卡|申请.{0,3}卡|办.{0,3}卡|名下.{0,6}卡|有哪些卡|卡.{0,3}(丢|不见|锁|冻)|(丢|锁|冻).{0,3}卡)/,
     build: (text, state) => {
-      if (/挂失|丢了|丢卡|遗失/.test(text)) return { slots: { cardId: "card-001" }, missing: [], tool: "report_loss" };
-      if (/锁卡|锁定|冻结/.test(text)) return { slots: { cardId: "card-002" }, missing: [], tool: "lock_card" };
-      if (/解锁|恢复使用/.test(text)) return { slots: { cardId: "card-002", note: "unlock" }, missing: [], tool: "lock_card" };
+      if (/挂失|丢了|丢卡|遗失|不见/.test(text)) return { slots: { cardId: "card-001" }, missing: [], tool: "report_loss" };
+      if (/锁卡|锁了|锁定|冻结|冻卡/.test(text)) return { slots: { cardId: "card-002" }, missing: [], tool: "lock_card" };
+      if (/解锁|恢复(卡片|用卡)?使用/.test(text)) return { slots: { cardId: "card-002", note: "unlock" }, missing: [], tool: "lock_card" };
       const limit = /(额度|限额|提到|调到|提高到)/.test(text) ? extractAmount(text) : null;
       if (limit !== null) return { slots: { cardId: "card-002", amountCents: limit }, missing: [], tool: "adjust_limit" };
-      if (/申请|办理|新卡|办卡/.test(text)) return { slots: { purpose: "新卡申请" }, missing: [], tool: "apply_card" };
+      if (/申请|办理|新卡|办.{0,4}卡/.test(text)) return { slots: { purpose: "新卡申请" }, missing: [], tool: "apply_card" };
       return { slots: {}, missing: [], tool: "list_cards" };
     },
   },
   {
     scene: "wealth",
     tool: "wealth_list",
-    pattern: /(理财|基金|年化|收益|申购|赎回|风险测评|风险等级)/,
+    pattern: /(理财|基金|年化|收益|申购|赎回|风险测评|风险等级|风险承受|承受能力|风险偏好)/,
     build: (text, state) => {
       if (/风险测评|风险等级|承受能力/.test(text)) return { slots: {}, missing: [], tool: "wealth_risk" };
       const amount = extractAmount(text);
@@ -219,7 +229,8 @@ const RULES: ReadonlyArray<Rule> = [
           tool: "wealth_redeem",
         };
       }
-      if (/申购|买入|购买|投|买/.test(text)) {
+      const browsing = /有什么|哪些|推荐|看看|对比|可以买|能买/.test(text);
+      if (!browsing && /申购|买入|购买|投|买/.test(text)) {
         const productId = matchProduct(text, state);
         const missing: string[] = [];
         if (productId === undefined) missing.push("productId");
@@ -252,10 +263,11 @@ const RULES: ReadonlyArray<Rule> = [
   {
     scene: "cross",
     tool: "birthday_lock",
-    pattern: /(生日|纪念日)/,
+    pattern: /(生日|纪念日|鲜花|蛋糕|订.{0,2}花|束花)/,
     build: (text) => {
-      const wantBook = /(订|下单|买|准备|安排).{0,6}(花|蛋糕|礼|礼物)|蛋糕|鲜花/.test(text);
-      if (wantBook) {
+      const wantLock = /锁|预留|预存/.test(text);
+      const wantBook = /(订|下单|买|安排).{0,6}(花|蛋糕|礼|礼物)|蛋糕|鲜花/.test(text);
+      if (wantBook && !wantLock) {
         const gift = /花.*蛋糕|蛋糕.*花|都要|组合/.test(text)
           ? "both"
           : /蛋糕/.test(text)
@@ -315,7 +327,7 @@ const RULES: ReadonlyArray<Rule> = [
   {
     scene: "transfer",
     tool: "transfer",
-    pattern: /(转|汇|打款|付款)/,
+    pattern: /(转|(?<!外)汇(?!率|总|报|市|价)|打(款|钱|给)|付款)/,
     build: (text, state) => {
       const payee = extractPayee(text, state);
       const amount = extractAmount(text);
@@ -336,8 +348,10 @@ const RULES: ReadonlyArray<Rule> = [
 /** 解析一句话：命中第一条规则即为场景，槽位缺失交给编排层追问。 */
 export function parseIntent(raw: string, state: BankState): Intent {
   const text = raw.trim();
+  const compactText = text.replace(/\s+/g, "");
+  const mentionsProduct = state.products.some((item) => compactText.includes(item.name.replace(/\s+/g, "")));
   for (const rule of RULES) {
-    if (!rule.pattern.test(text)) continue;
+    if (!rule.pattern.test(text) && !(rule.scene === "wealth" && mentionsProduct)) continue;
     const built = rule.build(text, state);
     const { slots, missing } = built;
     const filled = Object.values(slots).filter((value) => value !== undefined).length;

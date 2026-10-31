@@ -1,4 +1,6 @@
 ---
+category: 工具
+triggers: [汇率, 反欺诈, 外部服务]
 name: 银行外部服务调用
 description: 汇率、反欺诈与产品三类 MCP 服务的调用时机、参数与结果使用方式
 tags: [MCP, 汇率, 反诈, 产品目录, 外部服务]

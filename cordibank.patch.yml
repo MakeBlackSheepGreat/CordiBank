@@ -1,0 +1,12 @@
+# 插件 patch 分层（学 DeepSeek Harness 的 cordis.patch.yml）：顶层 YAML 数组，
+# 每条按 id 定向覆盖一个插件；未列出的插件按其清单默认启用。
+#
+#   - id: bank-agent        # 与插件清单 cordibank-plugin.json 的 id 对应
+#     disabled: true        # 可选：停用该插件（装配期直接跳过）
+#     config:               # 可选：与清单默认 config 浅合并，装配器写入 plugin.config
+#       key: value
+#
+# 外部插件投放到 CORDIBANK_PLUGIN_DIRS（默认 runtime/plugins/）：
+# 每个插件一个子目录，内含 cordibank-plugin.json + 入口模块（须导出
+# createCapability(cfg, deps)），依赖其他插件在清单的 inject 里声明。
+[]

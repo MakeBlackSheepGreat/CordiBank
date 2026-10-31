@@ -1,4 +1,6 @@
 ---
+category: 账务
+triggers: [订阅, 自动扣费]
 name: 订阅代扣管理
 description: 识别自动续费、汇总月度扣费、取消订阅的判定与话术
 tags: [订阅, 代扣, 自动续费, 取消订阅]

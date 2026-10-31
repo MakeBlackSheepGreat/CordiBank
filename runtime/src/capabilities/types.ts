@@ -86,4 +86,6 @@ export interface CapabilityPlugin {
   unmount?(): void;
   /** 有序能力组合 Rails（可选）：在生命周期钩子处按优先级执行 */
   rails?: RailSpec[];
+  /** 装配配置：清单默认与 patch 层浅合并的结果，装配器在注册前写入 */
+  config?: Record<string, unknown>;
 }

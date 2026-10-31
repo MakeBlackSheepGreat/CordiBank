@@ -69,7 +69,6 @@ function adversarialAgent(): BankAgent {
       temperature: 0,
       maxTokens: 200,
       effort: "low",
-      thinking: false,
     }),
     () => store.load(),
   );

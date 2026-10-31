@@ -10,6 +10,10 @@ export interface SkillSummary {
   name: string;
   description: string;
   tags: string[];
+  /** 业务分类：如 账务 / 风控 / 合规；空串视为未分类。 */
+  category: string;
+  /** 触发词：匹配会话话术时优先命中。 */
+  triggers: string[];
   bytes: number;
   updatedAt: string;
 }
@@ -122,6 +126,8 @@ function readSkill(id: string, absolutePath: string): Skill {
     name: parseScalar(meta.get("name") ?? "") || id,
     description: parseScalar(meta.get("description") ?? ""),
     tags: parseTags(meta.get("tags")),
+    category: parseScalar(meta.get("category") ?? ""),
+    triggers: parseTags(meta.get("triggers")),
     content: match ? raw.slice(match[0].length).replace(/^\r?\n/, "") : raw,
     bytes: stats.size,
     updatedAt: stats.mtime.toISOString(),
@@ -129,9 +135,18 @@ function readSkill(id: string, absolutePath: string): Skill {
 }
 
 /** 序列化技能文件：前置元信息 + 空行 + 正文。 */
-function serializeSkill(skill: { name: string; description: string; tags: string[]; content: string }): string {
+function serializeSkill(skill: {
+  name: string;
+  description: string;
+  tags: string[];
+  category: string;
+  triggers: string[];
+  content: string;
+}): string {
   const tags = `[${skill.tags.map((tag) => yamlScalar(tag)).join(", ")}]`;
-  return `---\nname: ${yamlScalar(skill.name)}\ndescription: ${yamlScalar(skill.description)}\ntags: ${tags}\n---\n\n${skill.content}`;
+  const triggers = `[${skill.triggers.map((trigger) => yamlScalar(trigger)).join(", ")}]`;
+  const category = skill.category === "" ? "" : `\ncategory: ${yamlScalar(skill.category)}`;
+  return `---\nname: ${yamlScalar(skill.name)}\ndescription: ${yamlScalar(skill.description)}\ntags: ${tags}${category}\ntriggers: ${triggers}\n---\n\n${skill.content}`;
 }
 
 /** 命中次数：同一词最多计 FIELD_HIT_CAP/BODY_HIT_CAP 次，避免长正文淹没权重。 */
@@ -277,6 +292,9 @@ export function createSkillPlugin(cfg: RuntimeConfig): CapabilityPlugin {
       };
     },
 
+    /** 关键词搜索：与 match 同一套计分，供技能中心面板检索。 */
+    search: (...params: unknown[]): { skills: SkillHit[] } => provider.match(...params) as { skills: SkillHit[] },
+
     /** 新建技能：id 由 name 生成 slug，同名已存在按无效输入拒绝。 */
     create: (...params: unknown[]): { skill: Skill } => {
       const name = typeof params[0] === "string" ? params[0].trim() : "";
@@ -284,11 +302,13 @@ export function createSkillPlugin(cfg: RuntimeConfig): CapabilityPlugin {
       const description = typeof params[1] === "string" ? params[1].trim() : "";
       const content = typeof params[2] === "string" ? params[2] : "";
       const tags = normalizeTags(params[3]);
+      const category = typeof params[4] === "string" ? params[4].trim() : "";
+      const triggers = normalizeTags(params[5]);
       const id = slugify(name);
       const absolute = path.join(skillsDir, `${id}.md`);
       if (existsSync(absolute)) throw new RuntimeError("INVALID_INPUT", `同名技能已存在：${id}`);
       mkdirSync(skillsDir, { recursive: true });
-      writeFileSync(absolute, serializeSkill({ name, description, tags, content }), "utf8");
+      writeFileSync(absolute, serializeSkill({ name, description, tags, category, triggers, content }), "utf8");
       return { skill: readSkill(id, absolute) };
     },
 
@@ -313,7 +333,12 @@ export function createSkillPlugin(cfg: RuntimeConfig): CapabilityPlugin {
       const description = fields.description === undefined ? current.description : fields.description.trim();
       const content = fields.content === undefined ? current.content : fields.content;
       const tags = fields.tags === undefined ? current.tags : normalizeTags(fields.tags);
-      writeFileSync(target.absolute, serializeSkill({ name: current.name, description, tags, content }), "utf8");
+      if (fields.category !== undefined && typeof fields.category !== "string") {
+        throw new RuntimeError("INVALID_INPUT", "category 必须是字符串");
+      }
+      const category = fields.category === undefined ? current.category : fields.category.trim();
+      const triggers = fields.triggers === undefined ? current.triggers : normalizeTags(fields.triggers);
+      writeFileSync(target.absolute, serializeSkill({ name: current.name, description, tags, category, triggers, content }), "utf8");
       return { skill: readSkill(target.id, target.absolute) };
     },
 
@@ -329,12 +354,12 @@ export function createSkillPlugin(cfg: RuntimeConfig): CapabilityPlugin {
     name: "skill",
     def: {
       service: "skill.registry",
-      methods: ["list", "read", "match", "create", "update", "remove"],
-      description: "可插拔技能：按需加载科研流程与配方",
+      methods: ["list", "read", "match", "search", "create", "update", "remove"],
+      description: "技能中心：银行业务流程与配方，按分类/触发词/关键词检索",
     },
     panel: {
-      title: "技能库",
-      description: "可插拔的科研流程与配方",
+      title: "技能中心",
+      description: "银行业务流程与配方",
       kind: "summary",
       source: "skill.list",
     },

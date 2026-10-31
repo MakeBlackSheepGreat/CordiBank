@@ -51,6 +51,8 @@ export interface McpServerConfig {
   url?: string;
   headers?: Record<string, string>;
   timeoutMs?: number;
+  /** 连接器目录分类（如 汇率 / 风控 / 产品）。 */
+  category?: string;
 }
 
 /** 列表返回的服务器摘要；status 为空闲/最近一次连接结果。 */
@@ -61,6 +63,8 @@ export interface McpServerSummary {
   target: string;
   status: "ready" | "error" | "idle";
   toolCount: number;
+  category: string;
+  connected: boolean;
   error?: string;
 }
 
@@ -242,7 +246,14 @@ export function normalizeMcpServer(raw: unknown): McpServerConfig {
     typeof rawTimeout === "number" && Number.isFinite(rawTimeout) && rawTimeout > 0
       ? Math.floor(rawTimeout)
       : undefined;
-  const base = { id, name: name === "" ? id : name, transport, ...(timeoutMs === undefined ? {} : { timeoutMs }) };
+  const category = typeof input.category === "string" ? input.category.trim() : "";
+  const base = {
+    id,
+    name: name === "" ? id : name,
+    transport,
+    ...(timeoutMs === undefined ? {} : { timeoutMs }),
+    ...(category === "" ? {} : { category }),
+  };
   if (transport === "stdio") {
     const command = typeof input.command === "string" ? input.command.trim() : "";
     if (command === "") {
@@ -268,11 +279,27 @@ export function normalizeMcpServer(raw: unknown): McpServerConfig {
   return { ...base, url, ...(headers === undefined ? {} : { headers }) };
 }
 
+/** 展开 secret 引用：值中的 ${ENV_NAME} 从环境变量解析，凭据不写入清单文件。 */
+export function expandSecretRefs(value: string): string {
+  return value.replace(/\$\{([A-Z_][A-Z0-9_]*)\}/g, (ref, name) => {
+    const resolved = process.env[name];
+    if (resolved === undefined || resolved === "") {
+      throw new RuntimeError("INVALID_INPUT", "环境变量未设置，无法解析凭据引用：" + name);
+    }
+    return resolved;
+  });
+}
+
+function expandSecretMap(map: Record<string, string> | undefined): Record<string, string> | undefined {
+  if (map === undefined) return undefined;
+  return Object.fromEntries(Object.entries(map).map(([key, value]) => [key, expandSecretRefs(value)]));
+}
+
 /** stdio 传输：spawn 子进程，按行分帧 JSON-RPC。 */
 function createStdioTransport(server: McpServerConfig): McpTransport {
   const child = spawn(server.command ?? "", server.args ?? [], {
     stdio: ["pipe", "pipe", "pipe"],
-    env: { ...process.env, ...(server.env ?? {}) },
+    env: { ...process.env, ...expandSecretMap(server.env) },
     windowsHide: true,
   });
   const pending = new Map<number, PendingCall>();
@@ -463,7 +490,7 @@ function createHttpTransport(server: McpServerConfig): McpTransport {
     "content-type": "application/json",
     accept: "application/json, text/event-stream",
     "mcp-protocol-version": PROTOCOL_VERSION,
-    ...(server.headers ?? {}),
+    ...expandSecretMap(server.headers),
     ...(sessionId === null ? {} : { "mcp-session-id": sessionId }),
   });
 
@@ -647,6 +674,8 @@ export function createMcpPlugin(cfg: RuntimeConfig): CapabilityPlugin {
       target: targetOf(server),
       status: state?.status ?? "idle",
       toolCount: state?.toolCount ?? 0,
+      category: server.category ?? "",
+      connected: connections.has(server.id),
       ...(state?.status === "error" && state.error !== undefined ? { error: state.error } : {}),
     };
   };
@@ -754,6 +783,38 @@ export function createMcpPlugin(cfg: RuntimeConfig): CapabilityPlugin {
       return { servers: remaining.map(summarize) };
     },
 
+    /** 主动建立连接并刷新工具清单；失败时状态记为 error 并抛出。 */
+    async connect(serverId: unknown): Promise<{ servers: McpServerSummary[] }> {
+      const server = requireServer(readServers(), serverId);
+      await loadTools(server);
+      return { servers: readServers().map(summarize) };
+    },
+
+    /** 断开连接：连接销毁，状态回到 idle；清单保留。 */
+    disconnect(serverId: unknown): { servers: McpServerSummary[] } {
+      const server = requireServer(readServers(), serverId);
+      destroyConnection(server.id);
+      status.delete(server.id);
+      return { servers: readServers().map(summarize) };
+    },
+
+    /** 健康检查：重列工具并计时；失败返回 ok:false 而不抛出。 */
+    async health(serverId: unknown): Promise<{ id: string; ok: boolean; latencyMs: number; toolCount?: number; error?: string }> {
+      const server = requireServer(readServers(), serverId);
+      const started = Date.now();
+      try {
+        const connection = await ensureConnection(server);
+        const tools = await listTools(connection.transport, server);
+        connection.tools = tools;
+        status.set(server.id, { status: "ready", toolCount: tools.length });
+        return { id: server.id, ok: true, latencyMs: Date.now() - started, toolCount: tools.length };
+      } catch (error) {
+        destroyConnection(server.id);
+        const failure = toRuntimeError(error, "MCP 服务器 " + server.id + " 健康检查失败");
+        status.set(server.id, { status: "error", toolCount: 0, error: failure.message });
+        return { id: server.id, ok: false, latencyMs: Date.now() - started, error: failure.message };
+      }
+    },
     /** 列举工具：给出 serverId 只列举该服务器，否则列举全部已配置服务器。 */
     async tools(serverId?: unknown): Promise<{ tools: McpTool[] }> {
       const servers = readServers();
@@ -790,8 +851,8 @@ export function createMcpPlugin(cfg: RuntimeConfig): CapabilityPlugin {
     name: "mcp",
     def: {
       service: "mcp.client",
-      methods: ["list", "add", "remove", "tools", "call"],
-      description: "外部 MCP 服务器：清单管理与工具列举/调用",
+      methods: ["list", "add", "remove", "connect", "disconnect", "health", "tools", "call"],
+      description: "MCP 连接器中心：多连接管理（connect/disconnect/health）、目录元数据与工具调用",
     },
     provider,
     unmount(): void {

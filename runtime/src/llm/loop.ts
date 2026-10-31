@@ -1,6 +1,6 @@
 import { LlmError } from "./client.ts";
 import type { LlmClient } from "./client.ts";
-import type { ChatMessage, Effort, ToolSchema } from "./types.ts";
+import type { ChatMessage, Effort, StreamDelta, ToolSchema } from "./types.ts";
 
 /** 循环里可见的工具：write 为真表示资金或规则变更操作，循环内不执行。 */
 export interface LoopToolSpec {
@@ -49,8 +49,8 @@ export interface LoopOptions {
   maxResultChars?: number;
   effort?: Effort;
   maxTokens?: number;
-  /** 是否开启思考模式；只读查询类对话可以关掉以省 token。 */
-  thinking?: boolean;
+  /** 增量回调：提供时改走流式请求，正文与推理分两路推送。 */
+  onDelta?: (delta: StreamDelta) => void;
 }
 
 const DEFAULT_MAX_STEPS = 4;
@@ -99,12 +99,15 @@ export async function runAgentLoop(options: LoopOptions): Promise<LoopOutcome> {
     }
 
     let reply;
+    const overrides = {
+      ...(options.maxTokens === undefined ? {} : { maxTokens: options.maxTokens }),
+      ...(options.effort === undefined ? {} : { effort: options.effort }),
+    };
     try {
-      reply = await client.chat(messages, schemas, {
-        ...(options.maxTokens === undefined ? {} : { maxTokens: options.maxTokens }),
-        ...(options.effort === undefined ? {} : { effort: options.effort }),
-        ...(options.thinking === undefined ? {} : { thinking: options.thinking }),
-      });
+      reply =
+        options.onDelta === undefined
+          ? await client.chat(messages, schemas, overrides)
+          : await client.chatStream(messages, schemas, options.onDelta, overrides);
     } catch (error) {
       if (error instanceof LlmError) {
         return { text: "", steps, usage, stopReason: "error", error: error.message };
