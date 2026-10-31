@@ -49,7 +49,7 @@
     </Box>
     <Box style={{ flex: 1 }}>
       <Text style={{ color: "#6B7280", fontSize: 12, letterSpacing: 2 }}>规模</Text>
-      <Text style={{ color: "#D1D5DB", fontSize: 16, marginTop: 5 }}>223 项测试，21 个内置工具</Text>
+      <Text style={{ color: "#D1D5DB", fontSize: 16, marginTop: 5 }}>244 项测试，21 个内置工具</Text>
     </Box>
     <Box style={{ flex: 1 }}>
       <Text style={{ color: "#6B7280", fontSize: 12, letterSpacing: 2 }}>交付</Text>

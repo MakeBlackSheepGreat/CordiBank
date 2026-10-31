@@ -150,7 +150,7 @@
       "visual_brief": "三栏并排，每栏顶部巨型数字 96px 等宽字体，下接一句说明，栏顶分别为绿黄红三色横线；底部三张小卡说明怎么跑、在哪看、证据在哪。",
       "image_file": "pages/002.png",
       "image_status": "approved",
-      "speaker_notes": "三个数字：二百二十三项测试、二百一十一项通过，二十一个内置工具加四个外部服务，注入拦截百分之百且正常请求零误拦。每个数字都能在评委机器上复跑。",
+      "speaker_notes": "三个数字：二百四十四项测试、二百三十二项通过，二十一个内置工具加四个外部服务，注入拦截百分之百且正常请求零误拦。每个数字都能在评委机器上复跑。",
       "elements": [
         {
           "id": "e02-n1",
@@ -159,7 +159,7 @@
           "native_intent": "native",
           "source_ref": "s02.key_points[0]",
           "confirmation_status": "confirmed",
-          "text": "223"
+          "text": "244"
         },
         {
           "id": "e02-n2",
@@ -1475,7 +1475,7 @@
           "native_intent": "native",
           "source_ref": "s11.key_points[0]",
           "confirmation_status": "confirmed",
-          "text": "223"
+          "text": "244"
         },
         {
           "id": "e11-redteam",

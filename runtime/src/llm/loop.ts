@@ -55,7 +55,7 @@ export interface LoopOptions {
 
 const DEFAULT_MAX_STEPS = 4;
 const DEFAULT_TOKEN_BUDGET = 6000;
-const DEFAULT_RESULT_CHARS = 600;
+const DEFAULT_RESULT_CHARS = 1400;
 
 /** 结果截断：只保留前若干字符，明确告知已截断，避免模型误以为数据完整。 */
 function compress(text: string, limit: number): string {
@@ -95,7 +95,11 @@ export async function runAgentLoop(options: LoopOptions): Promise<LoopOutcome> {
 
   for (let step = 1; step <= maxSteps; step += 1) {
     if (usage.promptTokens + usage.completionTokens >= budget) {
-      return { text: "", steps, usage, stopReason: "budget" };
+      // 预算耗尽时不能返回空串：界面会像卡死。给一句可执行提示，并保留已跑完的步骤。
+      const partial = usage.calls === 0
+        ? ""
+        : "这次查得比较深，推理预算用尽了。把问题缩小一点再问一次，比如先问「本月账单总计」。";
+      return { text: partial, steps, usage, stopReason: "budget" };
     }
 
     let reply;
@@ -171,5 +175,17 @@ export async function runAgentLoop(options: LoopOptions): Promise<LoopOutcome> {
     steps.push({ step, calls });
   }
 
-  return { text: "", steps, usage, stopReason: "steps" };
+  // 步数上限和预算上限一样会抽干正文：模型还在调工具，界面上就只剩空气泡。
+  // 已跑完的步骤里有工具回包，把最后一条可读摘要抛出来，比空串有用。
+  const lastSummary = steps
+    .flatMap((item) => item.calls)
+    .filter((call) => call.ok)
+    .map((call) => call.summary.replace(/\s+/g, " ").trim())
+    .filter((summary) => summary.length > 0)
+    .pop();
+  // 一条成功的工具回包都没有时保持空串，把兜底话术交回编排层：它知道场景，能给出更准的提示。
+  const text = lastSummary === undefined
+    ? ""
+    : `这次查得比较深，工具调用已经到轮次上限。目前取到的结果：${lastSummary.slice(0, 400)}`;
+  return { text, steps, usage, stopReason: "steps" };
 }

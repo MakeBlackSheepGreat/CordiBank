@@ -1,5 +1,5 @@
 import type { ToolDescriptor } from "../harness/types.ts";
-import { AGENT_SYSTEM_PROMPT } from "../llm/prompts.ts";
+import { AGENT_PERSONA_PROMPT } from "../llm/prompts.ts";
 import type { Skill } from "../plugins/skill.ts";
 
 /** 目录里每条技能摘要的字符上限，控制系统提示词体积。 */
@@ -18,11 +18,11 @@ export function renderSkillCatalog(skills: Skill[]): string {
     .join("\n");
 }
 
-/** 对话层系统提示词：固定边界加动态技能目录。目录为空时退回纯边界。 */
+/** 对话层系统提示词：人格段 + 按需注入的技能目录。目录为空时只给人格段。 */
 export function buildAgentPrompt(catalog: string): string {
-  if (catalog === "") return AGENT_SYSTEM_PROMPT;
+  if (catalog === "") return AGENT_PERSONA_PROMPT;
   return [
-    AGENT_SYSTEM_PROMPT,
+    AGENT_PERSONA_PROMPT,
     "",
     "【可用技能】",
     catalog,

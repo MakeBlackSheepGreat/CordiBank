@@ -7,6 +7,11 @@ import type { InjectionClassifier } from "./classifier.ts";
 import { extractAmount, extractPayee, parseIntent } from "./intent.ts";
 import type { ModelBrain } from "./model-brain.ts";
 import { evaluate, specOf } from "./policy.ts";
+import { AGENT_PERSONA_PROMPT } from "../llm/prompts.ts";
+import { routeByRule, type RouteDecision } from "./router.ts";
+import type { Router } from "./router.ts";
+import { buildAgentPrompt, renderSkillCatalog } from "./skill-tools.ts";
+import type { Skill } from "../plugins/skill.ts";
 import { executeTool } from "./tools.ts";
 import { parseMcpToolName, ToolRegistry } from "../harness/registry.ts";
 import type { ExternalInvoker } from "../harness/types.ts";
@@ -23,7 +28,11 @@ import type {
   ToolResult,
 } from "./types.ts";
 
-const UNKNOWN_REPLY = "我没有听懂这个请求。可以试：查余额、分析这个月账单、转给小王 500 元、取消视频会员、锁卡、有哪些理财产品、帮我准备生日。";
+/** 规则模式下没有模型可答时的兜底话术：给出身份、能力与可试问法。 */
+const GREETING_REPLY = "我是 CordiBank 的银行助手小蜂，可以帮你查余额、分析账单、管理订阅与卡片、判断转账风险、查看理财产品。想办哪件事，直接说就行。";
+
+/** 六个业务场景的稳定标识，作为路由候选清单。 */
+const SCENES = ["transfer", "bills", "wealth", "card", "subscription", "cross"] as const;
 
 /** 规则置信度低于该值时，交给模型再解析一次。 */
 const MODEL_ESCALATE_BELOW = 0.7;
@@ -50,6 +59,10 @@ export interface BankAgentOptions {
   invoker?: ExternalInvoker;
   /** 输入侧语义分类器：正则守卫未命中时按注入语义裁决，未配置则跳过。 */
   classifier?: InjectionClassifier;
+  /** 前置路由器：判定链路并装配工具与技能，未配置时退化为原规则流程。 */
+  router?: Router;
+  /** 技能加载器：路由选中技能后注入提示词，未配置时不注入。 */
+  loadSkills?: () => Skill[];
 }
 
 /** 银行智能体编排：守卫、解析、判定、确认、执行、审计六段式。 */
@@ -62,6 +75,8 @@ export class BankAgent {
   private readonly intentMode: "rule" | "hybrid" | "model";
   private readonly toolScope: "all" | "scene";
   private readonly invoker: ExternalInvoker | undefined;
+  private readonly router: Router | undefined;
+  private readonly loadSkills: () => Skill[];
   readonly tools: ToolRegistry;
   private readonly sessions = new Map<string, BankSession>();
   private readonly drafts = new Map<string, Draft>();
@@ -77,6 +92,8 @@ export class BankAgent {
     this.tools = options.registry ?? new ToolRegistry();
     if (options.registry === undefined) this.tools.registerMany(builtinToolDescriptors());
     this.classifier = options.classifier;
+    this.router = options.router;
+    this.loadSkills = options.loadSkills ?? (() => []);
   }
 
   /** 工具清单快照：含内置与已接入的外部工具。 */
@@ -296,6 +313,99 @@ export class BankAgent {
     return `还需要确认：${missing.map((key) => labels[key] ?? key).join("、")}。`;
   }
 
+  /** 只读工具名清单：作为路由候选，也用于校验模型给回的装配结果。 */
+  private routeCandidates(): { scenes: string[]; tools: string[]; skills: string[] } {
+    const readonly = this.tools.readonlyTools().map((descriptor) => descriptor.name);
+    const skills = this.loadSkills().map((skill) => skill.name);
+    return { scenes: [...SCENES], tools: readonly, skills };
+  }
+
+  /**
+   * 前置路由：规则先判，判不了交给模型。
+   *
+   * 规则判中的场景不再调模型，省一次往返；模型判定时工具与技能名按候选清单过滤，
+   * 臆造名字不会进入装配。
+   */
+  async route(sessionId: string, raw: string): Promise<RouteDecision & { decision: PolicyDecision; audit: { seq: number; hash: string }; session: BankSession }> {
+    const state = this.store.load();
+    const session = this.session(sessionId);
+    const text = raw.trim();
+    const writeTools = new Set(this.tools.list().filter((descriptor) => descriptor.risk.write).map((descriptor) => descriptor.name));
+    let route = routeByRule(text, state, writeTools);
+    if (route === null) {
+      if (this.router !== undefined && this.brain !== undefined && this.brain.available) {
+        route = await this.router.decide(text, this.routeCandidates());
+      } else {
+        route = { kind: "social", scene: "unknown", tools: [], skills: [], reason: "无可用路由器，按社交兜底", source: "rule" };
+      }
+    }
+    const decision: PolicyDecision = {
+      level: "green",
+      shape: "routed",
+      hits: [{ rule: `route-${route.kind}`, detail: route.reason, delta: "none" }],
+      summary: `路由到 ${route.kind} 链路`,
+      requiresConfirm: false,
+      blocked: false,
+    };
+    const audit = this.audit({
+      sessionId,
+      userText: text,
+      tool: "router",
+      params: { kind: route.kind, scene: route.scene, tools: route.tools, skills: route.skills },
+      decision: "routed",
+      level: "green",
+      rules: [`route-${route.kind}`],
+      intentSource: route.source,
+      result: route.reason === "" ? `路由到 ${route.kind}` : route.reason,
+    });
+    return { ...route, decision, audit, session };
+  }
+
+  /**
+   * 兜底对话：意图解析判不出场景时，用模型按人格提示词直接作答。
+   *
+   * 不挂任何业务工具、不注入客户数据，只发用户原话；这样「你是谁」「1+1 等于几」
+   * 这类问题在默认对话链路上也有正常回复，而不是一句「没听懂」。模型不可用时返回空串，
+   * 由调用方回落到规则话术。
+   */
+  private async socialReply(text: string): Promise<{ text: string; source: "rule" | "model" }> {
+    if (this.brain === undefined || !this.brain.available) return { text: "", source: "rule" };
+    try {
+      const loop = await this.brain.converse(text, {
+        systemPrompt: AGENT_PERSONA_PROMPT,
+        tools: [],
+        skills: [],
+        plainUserText: true,
+        maxSteps: 1,
+      });
+      const reply = loop.text.trim();
+      return reply === "" ? { text: "", source: "rule" } : { text: reply, source: "model" };
+    } catch {
+      return { text: "", source: "rule" };
+    }
+  }
+
+  /** 按路由结果装配只读工具：选中的名字按注册表校验，未选中的不声明。 */
+  routeTools(route: RouteDecision): import("../harness/types.ts").ToolDescriptor[] {
+    const readonly = this.tools.readonlyTools();
+    if (route.tools.length === 0) return readonly;
+    const picked = readonly.filter((descriptor) => route.tools.includes(descriptor.name));
+    return picked.length === 0 ? readonly : picked;
+  }
+
+  /** 按路由结果装配技能：只有被选中的技能进入提示词目录。 */
+  routeSkills(route: RouteDecision): Skill[] {
+    const skills = this.loadSkills();
+    if (route.skills.length === 0) return skills;
+    const picked = skills.filter((skill) => route.skills.includes(skill.name));
+    return picked.length === 0 ? skills : picked;
+  }
+
+  /** 链路提示词：技能目录按装配结果渲染。 */
+  routePrompt(skills: Skill[]): string {
+    return buildAgentPrompt(renderSkillCatalog(skills));
+  }
+
   async chat(sessionId: string, raw: string): Promise<ChatReply> {
     const state = this.store.load();
     const session = this.session(sessionId);
@@ -451,8 +561,13 @@ export class BankAgent {
         requiresConfirm: false,
         blocked: false,
       };
-      const audit = this.audit({ sessionId, userText: text, tool: "unknown", params: {}, decision: "unmatched", level: "unknown", rules: ["intent-miss"], result: degradeNote === "" ? "未识别意图" : `未识别意图（${degradeNote}）` });
-      return this.reply({ session, text: UNKNOWN_REPLY, scene: "unknown", decision, audit });
+      const conversation = await this.socialReply(text);
+      const audit = this.audit({ sessionId, userText: text, tool: "unknown", params: {}, decision: "unmatched", level: "unknown", rules: ["intent-miss"], intentSource: conversation.source, result: degradeNote === "" ? "未识别意图" : `未识别意图（${degradeNote}）` });
+      // 没有模型可用时也不能只回一句「没听懂」：身份与能力询问给出自我介绍。
+      const writeTools = new Set(this.tools.list().filter((descriptor) => descriptor.risk.write).map((descriptor) => descriptor.name));
+      const guessed = routeByRule(text, state, writeTools);
+      const fallback = guessed !== null && guessed.kind === "social" ? GREETING_REPLY : `我没有听懂这个请求。可以试：查余额、分析这个月账单、转给小王 500 元、取消视频会员、锁卡、有哪些理财产品、帮我准备生日。`;
+      return this.reply({ session, text: conversation.text === "" ? fallback : conversation.text, scene: "unknown", decision, audit, intentSource: conversation.source });
     }
 
     session.lastScene = intent.scene;

@@ -49,6 +49,29 @@ describe("提示词体积", () => {
   });
 });
 
+describe("循环边界（桩客户端，不需要密钥）", () => {
+  it("步数耗尽返回可读正文而不是空串", async () => {
+    const reply: ModelReply = {
+      content: "",
+      toolCalls: [{ id: "call-1", name: "query_balance", arguments: "{}" }],
+      usage: { promptTokens: 10, completionTokens: 5, cacheHitTokens: 0, cacheMissTokens: 10, reasoningTokens: 0 },
+      latencyMs: 1,
+      model: "stub",
+    };
+    const stub = { chat: async (): Promise<ModelReply> => reply } as unknown as LlmClient;
+    const outcome = await runAgentLoop({
+      client: stub,
+      messages: [],
+      tools: buildLoopTools(),
+      execute: async () => ({ ok: true, summary: "余额 38642.50 元" }),
+      maxSteps: 2,
+    });
+    expect(outcome.stopReason).toBe("steps");
+    expect(outcome.text.trim().length).toBeGreaterThan(0);
+    expect(outcome.text).toContain("38642.50");
+  });
+});
+
 describe.skipIf(!configured)("DeepSeek V4.1 Flash 循环", () => {
   it(
     "只读问题会触发工具调用并给出结论",
@@ -143,6 +166,8 @@ describe.skipIf(!configured)("DeepSeek V4.1 Flash 循环", () => {
       });
       expect(outcome.stopReason).toBe("steps");
       expect(outcome.usage.calls).toBe(2);
+      // 步数耗尽是失败路径，但不能把正文交成空串：界面上会只剩一个空气泡。
+      expect(outcome.text.length).toBeGreaterThan(0);
     },
     30000,
   );

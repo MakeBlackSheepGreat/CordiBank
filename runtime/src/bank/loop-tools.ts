@@ -5,6 +5,8 @@ import { builtinToolDescriptors } from "./builtin-tools.ts";
 import { validateSlotValue } from "./model-intent.ts";
 import { TOOL_CONTRACTS } from "./tool-schema.ts";
 import { executeTool } from "./tools.ts";
+import type { BillReport } from "./tools.ts";
+import { yuan } from "./data.ts";
 import type { BankState, IntentSlots } from "./types.ts";
 
 const EMPTY_PARAMS: Record<string, unknown> = {
@@ -48,6 +50,65 @@ export function sanitizeLoopArgs(tool: string, args: Record<string, unknown>): I
   return slots;
 }
 
+/** 账单回包摊平：headline 只有总量，分类占比与异常明细要显式列出，模型才答得出细节。 */
+function renderBillDigest(data: unknown): string {
+  if (data === null || typeof data !== "object") return "";
+  const report = data as BillReport;
+  if (!Array.isArray(report.categories) || report.categories.length === 0) return "";
+  const lines: string[] = [];
+  const categories = report.categories
+    .slice(0, 5)
+    .map((item) => `${item.category} ${yuan(item.totalCents)} 元 / ${item.count} 笔 / 占比 ${(item.share * 100).toFixed(1)}%`);
+  lines.push(`分类占比：${categories.join("；")}`);
+  const anomalies = Array.isArray(report.anomalies) ? report.anomalies : [];
+  lines.push(anomalies.length === 0
+    ? "异常交易：无"
+    : `异常交易 ${anomalies.length} 条：${anomalies
+        .slice(0, 4)
+        .map((item) => `${item.ts.slice(0, 10)} ${item.merchant} ${yuan(item.amountCents)} 元（${item.reason}）`)
+        .join("；")}`);
+  const merchants = Array.isArray(report.topMerchants) ? report.topMerchants.slice(0, 3) : [];
+  if (merchants.length > 0) {
+    lines.push(`商户前三：${merchants.map((item) => `${item.merchant} ${yuan(item.totalCents)} 元 / ${item.count} 笔`).join("；")}`);
+  }
+  lines.push(`订阅扣费合计 ${yuan(report.subscriptionCharge)} 元`);
+  return lines.join("\n");
+}
+
+/** 订阅回包摊平：headline 只有总数，逐项名称与金额要列出来，模型才答得出细节。 */
+function renderSubscriptionDigest(data: unknown): string {
+  if (data === null || typeof data !== "object") return "";
+  const items = (data as { items?: unknown }).items;
+  if (!Array.isArray(items) || items.length === 0) return "";
+  return `订阅明细：${items
+    .map((raw) => {
+      const item = raw as { name?: unknown; amountCents?: unknown; cycle?: unknown; nextChargeAt?: unknown; cancelable?: unknown };
+      const name = typeof item.name === "string" ? item.name : "";
+      if (name === "") return "";
+      const amount = typeof item.amountCents === "number" ? `${yuan(item.amountCents)} 元` : "";
+      const cycle = item.cycle === "yearly" ? "按年" : "按月";
+      const next = typeof item.nextChargeAt === "string" ? `下次 ${item.nextChargeAt.slice(0, 10)}` : "";
+      const cancelable = item.cancelable === false ? "不可自助取消" : "可自助取消";
+      return [name, amount, cycle, next, cancelable].filter((part) => part !== "").join(" ");
+    })
+    .filter((line) => line !== "")
+    .join("；")}`;
+}
+
+/** 工具回包转循环内摘要：成功时把结构化字段摊平，失败时只回错误原因。 */
+function renderToolSummary(name: string, result: { ok: boolean; message: string; error?: string; data?: unknown }): string {
+  if (!result.ok) return result.error ?? "执行失败";
+  if (name === "analyze_bills") {
+    const digest = renderBillDigest(result.data);
+    return digest === "" ? result.message : `${result.message}\n${digest}`;
+  }
+  if (name === "list_subscriptions" || name === "subscription_reminder") {
+    const digest = renderSubscriptionDigest(result.data);
+    return digest === "" ? result.message : `${result.message}\n${digest}`;
+  }
+  return result.message;
+}
+
 /** 循环执行器：内置工具查本地状态执行，外部工具转给 MCP，额外工具走注入的执行器。 */
 export function createLoopExecutor(
   loadState: () => BankState,
@@ -71,6 +132,6 @@ export function createLoopExecutor(
       .map(([slotName]) => slotName);
     if (missing.length > 0) return { ok: false, summary: `缺少参数：${missing.join("、")}` };
     const result = executeTool({ tool: name, slots, state: loadState() });
-    return { ok: result.ok, summary: result.ok ? result.message : (result.error ?? "执行失败") };
+    return { ok: result.ok, summary: renderToolSummary(name, result) };
   };
 }

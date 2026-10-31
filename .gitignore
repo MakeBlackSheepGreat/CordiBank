@@ -71,3 +71,7 @@ runtime/pack-deps/
 # 本机调试脚手架与工具残留
 .uitest/
 .local/
+
+# 安全基准：下载的数据集与跑测报告
+.sec-data/
+.sec-report-*.json

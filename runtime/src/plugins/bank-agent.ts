@@ -3,13 +3,14 @@ import path from "node:path";
 import { loadConfig, resolveLlm, type RuntimeConfig } from "../config.ts";
 import type { Provider, CapabilityPlugin } from "../capabilities/types.ts";
 import { BankStore } from "../bank/data.ts";
-import { OutputReviewer } from "../bank/reviewer.ts";
+import { buildEvidence, OutputReviewer } from "../bank/reviewer.ts";
 import { InjectionClassifier } from "../bank/classifier.ts";
 import { builtinToolDescriptors } from "../bank/builtin-tools.ts";
 import { createWebExtras, webToolDescriptors } from "../bank/web-tools.ts";
 import { createOpsExtras, opsToolDescriptors } from "./ops.ts";
 import { ModelBrain } from "../bank/model-brain.ts";
 import { BankAgent } from "../bank/orchestrator.ts";
+import { Router } from "../bank/router.ts";
 import { parseIntent } from "../bank/intent.ts";
 import { listToolSpecs, POLICY_DIMENSIONS } from "../bank/policy.ts";
 import { SCENARIOS, SECURITY_DEMOS } from "../bank/scenarios.ts";
@@ -21,7 +22,7 @@ import { LlmClient } from "../llm/client.ts";
 import { flattenMcpResult, mcpToolDescriptors, type McpRiskDecl } from "./mcp-tools.ts";
 import { readSkillDirectory } from "./skill.ts";
 import type { McpTool } from "./mcp.ts";
-import type { IntentSlots } from "../bank/types.ts";
+import type { ChatReply, IntentSlots } from "../bank/types.ts";
 import type { Effort } from "../llm/types.ts";
 
 /** 思考强度的可选档位：off 关闭推理，low 常规，high 深度。 */
@@ -65,12 +66,27 @@ const BANK_AGENT_ARITY: Record<string, number> = {
   reset: 0,
   state: 0,
   model: 0,
-  ask: 2,
+  ask: 3,
   tools: 0,
   effort: 0,
   setEffort: 1,
   reload: 0,
 };
+
+/** 审计链当前末尾序号：用来界定「本次调用产生了哪些新记录」。 */
+function tailSeq(runner: BankAgent, sessionId: string): number {
+  const view = runner.auditLog(sessionId, 1) as { records: Array<{ seq: number }> };
+  const last = view.records.at(-1);
+  return last === undefined ? 0 : last.seq;
+}
+
+/** 本次调用新写入的工具类审计记录（排除路由与未识别意图）。 */
+function freshToolRecords(runner: BankAgent, sessionId: string, after: number): Array<{ tool: string; result: string }> {
+  const view = runner.auditLog(sessionId, 50) as { records: Array<{ seq: number; tool: string; result: string }> };
+  return view.records
+    .filter((record) => record.seq > after && record.tool !== "router" && record.tool !== "unknown")
+    .map((record) => ({ tool: record.tool, result: record.result }));
+}
 
 /** 包一层参数个数硬校验，防止畸形 RPC 请求靠忽略多余参数蒙混过关。 */
 function enforceArity(provider: Provider): Provider {
@@ -157,6 +173,8 @@ export function createBankAgentPlugin(cfg: RuntimeConfig = loadConfig(), mcp?: C
       );
       if (cfg.reviewerEnabled) reviewer = OutputReviewer.fromSettings(cfg.llm) ?? null;
       if (cfg.injectionClassifierEnabled) classifier = InjectionClassifier.fromSettings(cfg.llm) ?? null;
+      // 路由器与对话层共用同一份模型配置，但不共享客户端实例：路由关思考，对话层按档位走。
+      const router = cfg.llm.apiKey.trim() === "" ? undefined : new Router(new LlmClient(cfg.llm));
       agent = new BankAgent({
         storeDir: cfg.storeDir,
         brain,
@@ -165,6 +183,8 @@ export function createBankAgentPlugin(cfg: RuntimeConfig = loadConfig(), mcp?: C
         intentMode: cfg.llmIntentMode,
         toolScope: cfg.llmToolScope,
         classifier: classifier ?? undefined,
+        ...(router === undefined ? {} : { router }),
+        loadSkills: () => readSkillDirectory(cfg.skillsDir),
       });
     }
     return agent;
@@ -198,6 +218,36 @@ export function createBankAgentPlugin(cfg: RuntimeConfig = loadConfig(), mcp?: C
     return syncPromise;
   };
 
+  /**
+   * 对话链路的输出审查：编排层的回复同样要过一遍评估模型。
+   *
+   * 只有走只读问答（ask）时审查才生效是不够的——写链路与闲聊兜底同样把模型文字交给用户，
+   * 间接注入的载荷正是从这条缝里原样回吐出去的。证据从本轮新增的审计记录里取。
+   */
+  const reviewChat = async (
+    runner: BankAgent,
+    sessionId: string,
+    text: string,
+  ): Promise<{ reply: ChatReply; guard: string }> => {
+    const before = tailSeq(runner, sessionId);
+    const reply = await runner.chat(sessionId, text);
+    const checker = reviewer;
+    if (checker === null || reply.reply.trim() === "") return { reply, guard: "" };
+    const evidence = buildEvidence(
+      freshToolRecords(runner, sessionId, before).map((record) => ({
+        name: record.tool,
+        ok: true,
+        summary: record.result,
+      })),
+    );
+    const verdict = await checker.review(reply.reply, evidence);
+    if (verdict.ok) return { reply, guard: "" };
+    return {
+      reply: { ...reply, reply: reviewerBlock(verdict.reason) },
+      guard: verdict.reason,
+    };
+  };
+
   return {
     name: "bank-agent",
     def: {
@@ -216,7 +266,8 @@ export function createBankAgentPlugin(cfg: RuntimeConfig = loadConfig(), mcp?: C
         await ensureSync();
         const sessionId = asString(params[0], "sessionId");
         const text = asString(params[1], "text");
-        return await engine().chat(sessionId, text);
+        const checked = await reviewChat(engine(), sessionId, text);
+        return checked.guard === "" ? checked.reply : { ...checked.reply, guard: checked.guard };
       },
       /** 蜂群协同：意图官、三评估官并行、仲裁官、执行官、审计官，轨迹随回复返回。 */
       async swarm(...params: unknown[]): Promise<unknown> {
@@ -307,22 +358,44 @@ export function createBankAgentPlugin(cfg: RuntimeConfig = loadConfig(), mcp?: C
         if (model === null || !model.available) {
           return { mode: "unavailable", reason: "模型未配置，请使用 bank.agent.chat" };
         }
-        // 写操作不进模型：问答模式不承担执行职责，避免模型空口承诺却不动账。
-        const intent = parseIntent(text, engine().snapshot());
-        if (intent.tool !== "unknown" && BUILTIN_WRITE_TOOLS.has(intent.tool)) {
-          const reply = await engine().chat(sessionId, text);
-          return { mode: "write", chat: reply };
-        }
+        // 前置路由：先判链路，再按链路装配工具与技能。路由本身也写审计。
+        const runner = engine();
+        const route = await runner.route(sessionId, text);
         const effort = readEffort(params[2]);
-        const loop = await model.converse(text, effort === undefined ? {} : { effort });
+        // 写操作不进模型：问答模式不承担执行职责，避免模型空口承诺却不动账。
+        if (route.kind === "write") {
+          const checked = await reviewChat(runner, sessionId, text);
+          return { mode: "write", route, chat: checked.reply, ...(checked.guard === "" ? {} : { guard: checked.guard }) };
+        }
+        const routed = route.kind === "social"
+          ? {
+              // 闲聊链路只给人格提示词，不挂任何业务工具，也不注入客户数据。
+              ...(effort === undefined ? {} : { effort }),
+              tools: [] as unknown[],
+              skills: [],
+              plainUserText: true,
+            }
+          : {
+              ...(effort === undefined ? {} : { effort }),
+              tools: runner.routeTools(route),
+              skills: runner.routeSkills(route),
+              systemPrompt: runner.routePrompt(runner.routeSkills(route)),
+            };
+        const loop = await model.converse(text, routed as Parameters<typeof model.converse>[1]);
         if (loop.stopReason === "write-intent") {
-          const reply = await engine().chat(sessionId, text);
-          return { mode: "write", loop, chat: reply };
+          const checked = await reviewChat(engine(), sessionId, text);
+          return { mode: "write", loop, chat: checked.reply, ...(checked.guard === "" ? {} : { guard: checked.guard }) };
         }
         // 只读终文再过一道评估模型守卫：不通过即整段替换为危险提醒。
+        // 审查器要拿到本轮工具回包，否则正常查订阅会被误判成「编造数据」。
         const checker = reviewer;
         if (checker !== null && loop.text.trim() !== "") {
-          const verdict = await checker.review(loop.text);
+          const evidence = loop.steps
+            .flatMap((step) => step.calls)
+            .filter((call) => call.ok)
+            .map((call) => `[${call.name}] ${call.summary}`)
+            .join("\n");
+          const verdict = await checker.review(loop.text, evidence);
           if (verdict.ok === false) {
             return {
               mode: "readonly",

@@ -5,7 +5,7 @@ import { runAgentLoop, type LoopOutcome } from "../llm/loop.ts";
 import { AGENT_SYSTEM_PROMPT, buildIntentToolset, buildIntentUserMessage, INTENT_SYSTEM_PROMPT } from "../llm/prompts.ts";
 import type { ChatMessage, Effort, StreamDelta } from "../llm/types.ts";
 import { ToolRegistry } from "../harness/registry.ts";
-import type { ExternalInvoker } from "../harness/types.ts";
+import type { ExternalInvoker, ToolDescriptor } from "../harness/types.ts";
 import type { Skill } from "../plugins/skill.ts";
 import { builtinToolDescriptors } from "./builtin-tools.ts";
 import { buildLoopTools, createLoopExecutor } from "./loop-tools.ts";
@@ -13,6 +13,9 @@ import { ModelIntentError, toIntentFromCall } from "./model-intent.ts";
 import { buildAgentPrompt, createSkillLoader, renderSkillCatalog, skillLoadDescriptor } from "./skill-tools.ts";
 import { yuan } from "./data.ts";
 import type { BankState, Intent } from "./types.ts";
+
+/** 对话链路的累计 token 预算：够一次技能加载加两三次工具查询。 */
+const CONVERSE_TOKEN_BUDGET = 16_000;
 
 /** 模型调用元信息：写入审计，便于复盘模型是否被使用与耗时。 */
 export interface ModelMeta {
@@ -145,25 +148,37 @@ export class ModelBrain {
       onDelta?: (delta: StreamDelta) => void;
       /** 覆盖默认代理提示词；蜂群成员各带自己的角色提示词。 */
       systemPrompt?: string;
+      /** 覆盖工具范围：路由按需装配，未传时用全部只读工具。 */
+      tools?: ToolDescriptor[];
+      /** 覆盖技能范围：闲聊链路传空数组，不向模型暴露技能。 */
+      skills?: Skill[];
+      /** 只发用户原话，不带业务上下文；闲聊与身份询问走这条，省掉无关数据。 */
+      plainUserText?: boolean;
     } = {},
   ): Promise<LoopOutcome & { guardHit?: GuardHit }> {
     const state = this.loadState();
-    const skills = this.loadSkills();
+    const skills = options.skills ?? this.loadSkills();
     const messages: ChatMessage[] = [
       { role: "system", content: options.systemPrompt ?? buildAgentPrompt(renderSkillCatalog(skills)) },
       {
         role: "user",
-        content: buildIntentUserMessage({
-          text,
-          holder: state.account.holder,
-          contacts: state.contacts.map((item) => item.name).slice(0, 8),
-          subscriptions: state.subscriptions.map((item) => item.name),
-          balanceYuan: yuan(state.account.balance),
-        }),
+        content: options.plainUserText === true
+          ? text
+          : buildIntentUserMessage({
+              text,
+              holder: state.account.holder,
+              contacts: state.contacts.map((item) => item.name).slice(0, 8),
+              subscriptions: state.subscriptions.map((item) => item.name),
+              balanceYuan: yuan(state.account.balance),
+            }),
       },
     ];
+    // 路由可以按需收窄工具面；收窄后的名字先按注册表校验，未知名字不装配。
+    const scoped = options.tools === undefined
+      ? this.registry.readonlyTools()
+      : options.tools.filter((descriptor) => !descriptor.risk.write);
     const tools = [
-      ...this.registry.readonlyTools(),
+      ...scoped,
       ...(skills.length === 0 ? [] : [skillLoadDescriptor()]),
     ];
     // 处于流式请求上下文时自动走流式，调用方不必显式传回调。
@@ -184,7 +199,8 @@ export class ModelBrain {
           : { ...this.extras, skill_load: createSkillLoader(skills) },
       ),
       ...(options.maxSteps === undefined ? {} : { maxSteps: options.maxSteps }),
-      ...(options.tokenBudget === undefined ? {} : { tokenBudget: options.tokenBudget }),
+      // 对话链路默认给更宽的预算：一次多工具查询（加载技能 + 拉账单）很容易吃掉 6000。
+      tokenBudget: options.tokenBudget ?? CONVERSE_TOKEN_BUDGET,
       ...(options.effort === undefined ? {} : { effort: options.effort }),
       ...((sink === undefined || this.guardKeywords.length === 0)
         ? {}
