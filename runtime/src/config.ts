@@ -47,6 +47,10 @@ export interface RuntimeConfig {
   opsEnabled: boolean;
   /** OPS 沙箱工作目录：子进程 cwd、spill 与审计的落点，默认 repoRoot/.ops-sandbox。 */
   opsDir: string;
+  /** QQ（OneBot v11）HTTP API 地址，如 http://127.0.0.1:3000；空串表示未接入。 */
+  channelQqApiUrl: string;
+  /** QQ API 访问令牌（Bearer），可空；同时用于校验 OneBot 上报的 token 字段。 */
+  channelQqToken: string;
 }
 
 /** 工具声明范围；非法值回落到全量。 */
@@ -144,6 +148,8 @@ export function loadConfig(overrides: Partial<RuntimeConfig> = {}): RuntimeConfi
     webSearchKey: overrides.webSearchKey ?? process.env.CORDIBANK_WEB_SEARCH_KEY?.trim() ?? "",
     opsEnabled: overrides.opsEnabled ?? process.env.CORDIBANK_OPS !== "off",
     opsDir: overrides.opsDir ?? process.env.CORDIBANK_OPS_DIR?.trim() ?? path.join(repoRoot, ".ops-sandbox"),
+    channelQqApiUrl: overrides.channelQqApiUrl ?? process.env.CORDIBANK_CHANNEL_QQ_API?.trim() ?? "",
+    channelQqToken: overrides.channelQqToken ?? process.env.CORDIBANK_CHANNEL_QQ_TOKEN?.trim() ?? "",
   };
 }
 

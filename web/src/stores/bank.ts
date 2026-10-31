@@ -7,6 +7,7 @@ import type {
   BankChatReply,
   BankMessage,
   BankStateView,
+  ChannelsStatus,
   EffortLevel,
   EffortStatus,
   ModelStatus,
@@ -293,6 +294,14 @@ export const useBank = defineStore('bank', () => {
     await loadMcp()
   }
 
+  const channels = ref<ChannelsStatus | null>(null)
+
+  /** 渠道接入状态与最近消息，来自 channel.hub.status 真实回包。 */
+  async function loadChannels(): Promise<void> {
+    const status = await call<ChannelsStatus>('channel.hub.status', [])
+    if (status !== null) channels.value = status
+  }
+
   async function init(): Promise<void> {
     const stored = localStorage.getItem(SESSION_KEY)
     sessionId.value = stored !== null && stored !== '' ? stored : `web-${Date.now().toString(36)}`
@@ -308,6 +317,7 @@ export const useBank = defineStore('bank', () => {
     if (log !== null) audit.value = log
     await loadMcp()
     await loadSkills()
+    await loadChannels()
     await loadEffort()
   }
 
@@ -462,6 +472,8 @@ export const useBank = defineStore('bank', () => {
     convertFx,
     loadMcp,
     loadEffort,
+    loadChannels,
+    channels,
     init,
     refresh,
     send,

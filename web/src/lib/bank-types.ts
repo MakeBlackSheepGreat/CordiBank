@@ -212,3 +212,25 @@ export interface BankMessage {
   /** 该条回复来自规则编排还是模型问答。 */
   source?: 'deal' | 'ask'
 }
+/** 渠道状态：active=当前入口，ready=已配置，unconfigured=待配置。 */
+export interface ChannelView {
+  id: string
+  name: string
+  description: string
+  state: 'active' | 'ready' | 'unconfigured'
+  messageCount: number
+  lastMessageAt?: string
+}
+
+export interface ChannelEvent {
+  ts: string
+  channel: string
+  from: string
+  direction: 'in' | 'out'
+  text: string
+}
+
+export interface ChannelsStatus {
+  channels: ChannelView[]
+  events: ChannelEvent[]
+}

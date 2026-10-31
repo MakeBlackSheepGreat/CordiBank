@@ -277,6 +277,24 @@ export async function startServer(options: { port?: number; cfg?: RuntimeConfig 
       }
       return;
     }
+    if (req.method === "POST" && url.pathname.startsWith("/channel/") && url.pathname.endsWith("/incoming")) {
+      const name = url.pathname.slice("/channel/".length, -"/incoming".length);
+      try {
+        const raw = await readBody(req);
+        const payload = JSON.parse(raw) as unknown;
+        await registry.ensureServiceMounted("channel.hub.incoming", runtime.ctx);
+        const result = await registry.call("channel.hub.incoming", [name, payload]);
+        sendJson(res, 200, { ok: true, result });
+      } catch (error) {
+        if (error instanceof RuntimeError) {
+          sendJson(res, 200, { ok: false, error: error.message, code: error.code });
+          return;
+        }
+        const message = error instanceof Error ? error.message : String(error);
+        sendJson(res, 200, { ok: false, error: redactText(message) });
+      }
+      return;
+    }
     if (req.method === "GET" || req.method === "HEAD") {
       serveStatic(cfg, url.pathname, res);
       return;

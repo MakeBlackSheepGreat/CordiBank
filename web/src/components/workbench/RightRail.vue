@@ -215,7 +215,31 @@ async function onConvert(): Promise<void> {
         </template>
       </section>
 
-      <button class="reset" type="button" :disabled="bank.busy" @click="bank.reset()">重置演示数据</button>
+      <section class="rail-card">
+    <h2>渠道接入</h2>
+    <p class="muted">QQ 走 OneBot v11 HTTP 上报，微信走通用 webhook 桥，均由同一套银行智能体处理。</p>
+    <div v-if="bank.channels === null" class="muted">渠道状态加载中…</div>
+    <template v-else>
+      <ul class="chan">
+        <li v-for="chan in bank.channels.channels" :key="chan.id" class="chan__row">
+          <div class="chan__meta">
+            <span class="chan__name">{{ chan.name }}</span>
+            <span class="state-badge" :class="chan.state === 'active' ? 'state-ok' : chan.state === 'ready' ? 'state-warn' : 'state-neutral'">{{ chan.state === 'active' ? '使用中' : chan.state === 'ready' ? '已配置' : '待配置' }}</span>
+          </div>
+          <span class="chan__desc">{{ chan.description }}</span>
+          <span class="chan__count">{{ chan.messageCount }} 条消息</span>
+        </li>
+      </ul>
+      <div v-if="bank.channels.events.length > 0" class="chan-events">
+        <div v-for="(ev, i) in bank.channels.events.slice(0, 5)" :key="i" class="chan-event">
+          <span class="chan-event__dir" :class="ev.direction === 'in' ? 'is-in' : 'is-out'">{{ ev.direction === 'in' ? '收' : '发' }}</span>
+          <span class="chan-event__ch">{{ ev.channel }}</span>
+          <span class="chan-event__text">{{ ev.text }}</span>
+        </div>
+      </div>
+    </template>
+  </section>
+  <button class="reset" type="button" :disabled="bank.busy" @click="bank.reset()">重置演示数据</button>
     </aside>
   </div>
 </template>
@@ -648,4 +672,83 @@ async function onConvert(): Promise<void> {
   flex-shrink: 0;
 }
 
+
+.chan {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chan__row {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--cs-surface-inset, rgba(127, 127, 127, 0.08));
+}
+
+.chan__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chan__name {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.chan__desc {
+  font-size: 12px;
+  opacity: 0.72;
+}
+
+.chan__count {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.chan-events {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.chan-event {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.chan-event__dir {
+  flex: none;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 6px;
+}
+
+.chan-event__dir.is-in {
+  background: rgba(64, 150, 238, 0.18);
+  color: var(--cs-role-explorer, #4096ee);
+}
+
+.chan-event__dir.is-out {
+  background: rgba(82, 196, 26, 0.16);
+  color: var(--cs-role-validator, #52c41a);
+}
+
+.chan-event__ch {
+  flex: none;
+  opacity: 0.6;
+}
+
+.chan-event__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 </style>

@@ -8,6 +8,7 @@ import { createSchedulerPlugin } from "../plugins/scheduler.ts";
 import { createLlmRegistryPlugin } from "../plugins/llm-registry.ts";
 import { createMcpPlugin } from "../plugins/mcp.ts";
 import { createSkillPlugin } from "../plugins/skill.ts";
+import { createChannelsPlugin } from "../plugins/channels.ts";
 import { createSwarmTeamPlugin } from "../plugins/swarm-team.ts";
 import {
   assembleCapabilities,
@@ -78,6 +79,16 @@ export const BUNDLED_PLUGINS: BundledPlugin[] = [
       description: "模型供应商目录与激活状态，目录对齐 DeepSeek Harness 内置清单。",
     },
     create: (cfg) => createLlmRegistryPlugin(cfg),
+  },
+  {
+    manifest: {
+      id: "channels",
+      name: "渠道接入",
+      version: "1.0.0",
+      description: "IM 渠道接入中心：QQ（OneBot v11 上报）与微信 webhook 桥，回复由银行 Agent 会话生成。",
+      inject: ["bank-agent"],
+    },
+    create: (cfg, deps) => createChannelsPlugin(cfg, deps),
   },
   {
     manifest: {

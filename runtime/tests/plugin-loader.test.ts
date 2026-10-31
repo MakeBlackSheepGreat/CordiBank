@@ -237,7 +237,7 @@ describe("装配器", () => {
 });
 
 describe("内置装配全链", () => {
-  it("registerBuiltinCapabilities 按依赖序装载并挂载四件内置", async () => {
+  it("registerBuiltinCapabilities 按依赖序装载并挂载八件内置", async () => {
     const registry = new CapabilityRegistry();
     const cfg = loadConfig({
       storeDir: path.join(dir, "store"),
@@ -246,7 +246,7 @@ describe("内置装配全链", () => {
       pluginDirs: [],
     });
     const result = await registerBuiltinCapabilities(registry, cfg);
-    expect(result.loaded).toEqual(["mcp", "skill", "jobs", "llm-registry", "swarm-team", "bank-agent", "scheduler"]);
+    expect(result.loaded).toEqual(["mcp", "skill", "jobs", "llm-registry", "swarm-team", "bank-agent", "scheduler", "channels"]);
     expect(result.skipped).toEqual([]);
     expect(registry.isMounted("mcp")).toBe(true);
     expect(registry.isMounted("skill")).toBe(true);
