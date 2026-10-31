@@ -74,4 +74,5 @@ runtime/pack-deps/
 
 # 安全基准：下载的数据集与跑测报告
 .sec-data/
-.sec-report-*.json
+.sec-data-run.log
+.sec-report*.json

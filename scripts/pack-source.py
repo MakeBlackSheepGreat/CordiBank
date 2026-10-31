@@ -12,7 +12,7 @@ SKIP_TOP = {
     ".work", ".shot-tmp", ".render-tmp", ".uitest", ".local", ".dsh-ops", ".dsh-src-tmp",
     "bank-agent-starter", "NVIDIA Corporation", ".slidep", ".intent-eval-tmp",
     ".demo-store", ".ops-sandbox", ".realtest", ".test-tmp", ".smoke-tmp",
-    "runtime/cordibank-test-tmp",
+    "runtime/cordibank-test-tmp", ".sec-data",
 }
 # 任意层级排除的目录名
 SKIP_ANY = {"node_modules", ".git", "store", ".slidep", ".vitest-cache", "pack-deps",
@@ -32,8 +32,13 @@ SKIP_PREFIX = {"runtime/dist"}
 def rel(p):
     return os.path.relpath(p, ROOT).replace("\\", "/")
 
+# 安全基准的数据集、日志与跑测报告都不进交付包
+SEC_PREFIX = (".sec-data", ".sec-report")
+
 def skipped(relpath):
     parts = relpath.split("/")
+    if parts[0].startswith(SEC_PREFIX) or parts[-1].startswith(SEC_PREFIX):
+        return True
     if parts[0] in SKIP_TOP:
         return True
     for seg in parts:
