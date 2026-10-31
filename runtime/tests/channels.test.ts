@@ -174,10 +174,11 @@ describe("渠道接入中心", () => {
     ).rejects.toThrow(/QQ API 未配置/);
   });
 
-  it("默认状态：七个渠道全部在列，openclaw/钉钉/飞书按配置待配置", () => {
+  it("默认状态：八个渠道全部在列，微信/QQ/OneBot/钉钉/飞书按配置待配置", () => {
     const plugin = createChannelsPlugin(makeCfg(), fakeDeps());
-    const status = plugin.provider.status() as { channels: Array<{ id: string; name: string }> };
-    expect(status.channels.map((c) => c.id)).toEqual(["web", "desktop", "openclaw", "qq", "dingtalk", "feishu", "webhook"]);
+    const status = plugin.provider.status() as { channels: Array<{ id: string; name: string; state: string }> };
+    expect(status.channels.map((c) => c.id)).toEqual(["web", "desktop", "wechat", "qq", "onebot", "dingtalk", "feishu", "webhook"]);
+    expect(status.channels.find((c) => c.id === "wechat")?.state).toBe("unconfigured");
   });
 
   it("钉钉：sign 校验通过同步回包，签名错误拒绝", async () => {
@@ -229,16 +230,11 @@ describe("渠道接入中心", () => {
     }
   });
 
-  it("OpenClaw：令牌匹配进会话，未配置/不匹配拒绝", async () => {
-    lastCfg = makeCfg({ channelOpenclawToken: "hook-1" });
+  it("微信：ilink 由渠道接入向导收发，channels 只汇总状态不接 incoming", async () => {
+    lastCfg = makeCfg({ channelWechatBotToken: "bot-token-1", channelWechatAccountId: "bot-acc-1" });
     const plugin = createChannelsPlugin(lastCfg, fakeDeps());
-    const result = (await plugin.provider.incoming("openclaw", { message: "查账单", name: "wx-alice" }, { authorization: "Bearer hook-1" })) as { ok: boolean; reply: string; from: string };
-    expect(result.ok).toBe(true);
-    expect(result.reply).toBe("伪回复：查账单");
-    expect(result.from).toBe("wx-alice");
-    const unconfigured = makeCfg();
-    const bare = createChannelsPlugin(unconfigured, fakeDeps());
-    await expect(bare.provider.incoming("openclaw", { message: "hi" }, {})).rejects.toThrow(/OpenClaw hook 令牌未配置/);
-    await expect(plugin.provider.incoming("openclaw", { message: "hi" }, { authorization: "Bearer wrong" })).rejects.toThrow(/令牌不匹配/);
+    const status = plugin.provider.status() as { channels: Array<{ id: string; state: string }> };
+    expect(status.channels.find((c) => c.id === "wechat")?.state).toBe("ready");
+    await expect(plugin.provider.incoming("wechat", { message: "hi" })).rejects.toThrow(/未知渠道/);
   });
 });

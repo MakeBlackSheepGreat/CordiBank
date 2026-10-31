@@ -6,6 +6,7 @@ import { Kernel, type KernelContext } from "./kernel.ts";
 import { CapabilityRegistry } from "./capabilities/registry.ts";
 import { registerBuiltinCapabilities } from "./capabilities/builtins.ts";
 import { RuntimeError } from "./core/errors.ts";
+import { applyUserSettings, readUserSettings } from "./core/settings-store.ts";
 import { redactText } from "./core/redact.ts";
 import { withStreamSink } from "./core/stream-context.ts";
 import type { StreamDelta } from "./llm/types.ts";
@@ -38,7 +39,7 @@ export interface ServerHandle {
 }
 
 /** 渠道验签只需要少数请求头；统一小写键传出，避免整个头对象进入服务层。 */
-const CHANNEL_HEADER_KEYS = ["timestamp", "sign", "x-openclaw-token", "authorization"] as const;
+const CHANNEL_HEADER_KEYS = ["timestamp", "sign", "authorization"] as const;
 
 function pickHeaders(headers: IncomingMessage["headers"]): Record<string, string> {
   const picked: Record<string, string> = {};
@@ -248,6 +249,8 @@ async function handleStream(runtime: RpcContext, req: IncomingMessage, res: Serv
 export async function startServer(options: { port?: number; cfg?: RuntimeConfig } = {}): Promise<ServerHandle> {
   const cfg = options.cfg ?? loadConfig();
   mkdirSync(cfg.storeDir, { recursive: true });
+  // 用户设置优先于环境变量：插件装配前先就地覆盖，供应商目录基线也随之生效。
+  applyUserSettings(cfg, readUserSettings(cfg.storeDir));
   seedMcpServers(cfg);
 
   const kernel = new Kernel();

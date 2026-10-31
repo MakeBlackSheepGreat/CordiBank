@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useBank } from '../../stores/bank'
-import { helpOpen } from '../../lib/ui-bus'
+import { helpOpen, settingsOpen } from '../../lib/ui-bus'
 
 const bank = useBank()
 
@@ -50,6 +50,14 @@ function modeLabel(mode: string): string {
         {{ bank.modelStatus.model }} · {{ modeLabel(bank.modelStatus.mode) }}
       </span>
       <span v-else class="state-badge state-neutral">规则模式</span>
+      <button
+        class="topbar__settings"
+        type="button"
+        title="设置：模型密钥与 IM 渠道"
+        @click="settingsOpen = true"
+      >
+        设置
+      </button>
       <button
         class="topbar__help"
         type="button"
@@ -156,6 +164,22 @@ function modeLabel(mode: string): string {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.topbar__settings {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 9px;
+  border: 1px solid var(--color-stroke-2);
+  background: var(--color-surface-1);
+  color: var(--color-ink-2);
+  font-size: var(--font-size-caption);
+  cursor: pointer;
+}
+
+.topbar__settings:hover {
+  border-color: var(--color-accent-line);
+  color: var(--color-accent-ink);
 }
 
 .topbar__help {

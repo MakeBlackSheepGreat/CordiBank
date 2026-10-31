@@ -1,6 +1,6 @@
 <Slide style={{ background: "#0B1220", padding: "42px 72px 40px", display: "flex", flexDirection: "column" }}>
   <Text style={{ color: "#F59E0B", fontSize: 15, letterSpacing: 5, fontWeight: 600 }}>2026 FINTECHATHON · 人工智能赛道</Text>
-  <Text style={{ color: "#F7F4EC", fontSize: 66, fontWeight: 700, lineHeight: 1.2, marginTop: 20 }}>面向金融的蜂群多智能体系统</Text>
+  <Text style={{ color: "#F7F4EC", fontSize: 66, fontWeight: 700, lineHeight: 1.2, marginTop: 20 }}>面向金融的蜂群智能体系统</Text>
   <Box style={{ width: 96, height: 6, background: "#22C55E", marginTop: 16 }} />
   <Text style={{ color: "#9CA3AF", fontSize: 21, lineHeight: 1.6, marginTop: 16 }}>七个角色分工完成一次银行事务，从听懂到办完全程可追溯</Text>
 
@@ -49,7 +49,7 @@
     </Box>
     <Box style={{ flex: 1 }}>
       <Text style={{ color: "#6B7280", fontSize: 12, letterSpacing: 2 }}>规模</Text>
-      <Text style={{ color: "#D1D5DB", fontSize: 16, marginTop: 5 }}>91 项测试全通，21 个内置工具</Text>
+      <Text style={{ color: "#D1D5DB", fontSize: 16, marginTop: 5 }}>223 项测试，21 个内置工具</Text>
     </Box>
     <Box style={{ flex: 1 }}>
       <Text style={{ color: "#6B7280", fontSize: 12, letterSpacing: 2 }}>交付</Text>

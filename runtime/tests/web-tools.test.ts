@@ -38,8 +38,11 @@ const htmlResponse = (body: string, headers: Record<string, string> = {}) =>
 
 describe("web 工具描述符", () => {
   it("未配置搜索端点时只注册 web_fetch", () => {
-    const descriptors = webToolDescriptors(cfg());
-    expect(descriptors.map((item) => item.name)).toEqual([WEB_FETCH_TOOL]);
+    // 宿主环境里可能带着 DEEPSEEK_API_KEY，这里显式清空后再断言「未配置」路径
+    withEnv(() => {
+      const descriptors = webToolDescriptors(cfg());
+      expect(descriptors.map((item) => item.name)).toEqual([WEB_FETCH_TOOL]);
+    });
   });
 
   it("配置端点后注册 web_search 与 web_fetch，均为绿色只读", () => {
@@ -75,10 +78,19 @@ describe("web 工具执行器", () => {
   });
 
   it("搜索端点未配置时返回明确错误", async () => {
-    const extras = createWebExtras(cfg());
-    const result = await extras[WEB_SEARCH_TOOL]!({ query: "汇率" });
-    expect(result.ok).toBe(false);
-    expect(result.summary).toContain("搜索不可用");
+    const saved = new Map(ENV_KEYS.map((key) => [key, process.env[key]]));
+    for (const key of ENV_KEYS) delete process.env[key];
+    try {
+      const extras = createWebExtras(cfg());
+      const result = await extras[WEB_SEARCH_TOOL]!({ query: "汇率" });
+      expect(result.ok).toBe(false);
+      expect(result.summary).toContain("搜索不可用");
+    } finally {
+      for (const [key, value] of saved) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+    }
   });
 
   it("搜索走配置端点并兼容 href/description 字段", async () => {

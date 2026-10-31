@@ -10,6 +10,8 @@ import { createMcpPlugin } from "../plugins/mcp.ts";
 import { createSkillPlugin } from "../plugins/skill.ts";
 import { createChannelsPlugin } from "../plugins/channels.ts";
 import { createSwarmTeamPlugin } from "../plugins/swarm-team.ts";
+import { createSettingsPlugin } from "../plugins/settings.ts";
+import { createChannelWizardPlugin } from "../plugins/channel-wizard.ts";
 import {
   assembleCapabilities,
   discoverPlugins,
@@ -85,10 +87,20 @@ export const BUNDLED_PLUGINS: BundledPlugin[] = [
       id: "channels",
       name: "渠道接入",
       version: "1.0.0",
-      description: "IM 渠道接入中心：QQ（OneBot v11 上报）与微信 webhook 桥，回复由银行 Agent 会话生成。",
+      description: "IM 渠道接入中心：微信（ilink）、QQ 官方机器人与 OneBot 桥收发，回复由银行 Agent 会话生成。",
       inject: ["bank-agent"],
     },
     create: (cfg, deps) => createChannelsPlugin(cfg, deps),
+  },
+  {
+    manifest: {
+      id: "channel-wizard",
+      name: "渠道接入向导",
+      version: "1.0.0",
+      description: "微信扫码与 QQ 官方机器人凭据接入都在应用内完成，接入后收发链路自动起。",
+      inject: ["bank-agent"],
+    },
+    create: (cfg, deps) => createChannelWizardPlugin(cfg, deps),
   },
   {
     manifest: {
@@ -98,6 +110,16 @@ export const BUNDLED_PLUGINS: BundledPlugin[] = [
       description: "成员花名册、信箱、任务板与目标管理，队友只挂只读工具（写域隔离）。",
     },
     create: (cfg) => createSwarmTeamPlugin(cfg),
+  },
+  {
+    manifest: {
+      id: "settings",
+      name: "设置",
+      version: "1.0.0",
+      description: "模型密钥与 IM 渠道的运行时配置，保存即热生效。",
+      inject: ["bank-agent"],
+    },
+    create: (cfg, deps) => createSettingsPlugin(cfg, deps),
   },
 ];
 

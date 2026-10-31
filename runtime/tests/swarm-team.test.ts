@@ -6,12 +6,32 @@ import { TaskBoard, TeamError } from "../src/bank/swarm-board.ts";
 import { loadConfig, type RuntimeConfig } from "../src/config.ts";
 import { createSwarmTeamPlugin } from "../src/plugins/swarm-team.ts";
 
+const KEY_ENVS = ["LLM_API_KEY", "DEEPSEEK_API_KEY", "SILICONFLOW_API_KEY"];
+
 /** 测试专用配置：不写 store、不配密钥，模型路径全部走不到真实网络。 */
 function testCfg(): RuntimeConfig {
   return loadConfig({
     storeDir: "cordibank-test-tmp/store",
     skillsDir: "cordibank-test-tmp/skills",
   });
+}
+
+/**
+ * 在「没有任何密钥」的环境下跑一段断言。
+ * 宿主 shell 可能带着 DEEPSEEK_API_KEY，不隔离就会真的调到模型，
+ * 「无密钥」分支根本走不到。
+ */
+async function withoutKeys(run: () => Promise<void> | void): Promise<void> {
+  const saved = new Map(KEY_ENVS.map((key) => [key, process.env[key]]));
+  for (const key of KEY_ENVS) delete process.env[key];
+  try {
+    await run();
+  } finally {
+    for (const [key, value] of saved) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
 }
 
 describe("swarm-board 任务板", () => {
@@ -133,22 +153,26 @@ describe("swarm-roster 花名册与信箱", () => {
 
 describe("swarm-team 插件服务", () => {
   it("未配密钥时任务与目标方法可用，run 明确报模型未配置", async () => {
-    const plugin = createSwarmTeamPlugin(testCfg());
-    const members = plugin.provider.members() as { name: string }[];
-    expect(members.map((m) => m.name)).toContain("lead");
-    const created = plugin.provider.taskCreate("分派侦察", "先看外部工具") as { id: string; ready: boolean };
-    expect(created.ready).toBe(true);
-    const goal = plugin.provider.goalCreate("完成蜂群演示", 3) as { phase: string };
-    expect(goal.phase).toBe("active");
-    plugin.provider.spawn("scout", "explorer", "侦察");
-    const ran = await plugin.provider.run("scout") as { error?: string };
-    expect(ran.error).toMatch(/模型未配置/);
+    await withoutKeys(async () => {
+      const plugin = createSwarmTeamPlugin(testCfg());
+      const members = plugin.provider.members() as { name: string }[];
+      expect(members.map((m) => m.name)).toContain("lead");
+      const created = plugin.provider.taskCreate("分派侦察", "先看外部工具") as { id: string; ready: boolean };
+      expect(created.ready).toBe(true);
+      const goal = plugin.provider.goalCreate("完成蜂群演示", 3) as { phase: string };
+      expect(goal.phase).toBe("active");
+      plugin.provider.spawn("scout", "explorer", "侦察");
+      const ran = await plugin.provider.run("scout") as { error?: string };
+      expect(ran.error).toMatch(/模型未配置/);
+    });
   });
 
   it("goalRound 在无密钥时 blocked 并原样抛错", async () => {
-    const plugin = createSwarmTeamPlugin(testCfg());
-    plugin.provider.goalCreate("目标", 2);
-    await expect(plugin.provider.goalRound()).rejects.toThrow(/模型未配置/);
-    expect((plugin.provider.goalGet() as { phase: string; blockedReason?: { code: string } }).blockedReason?.code).toBe("lead-turn-failed");
+    await withoutKeys(async () => {
+      const plugin = createSwarmTeamPlugin(testCfg());
+      plugin.provider.goalCreate("目标", 2);
+      await expect(plugin.provider.goalRound()).rejects.toThrow(/模型未配置/);
+      expect((plugin.provider.goalGet() as { phase: string; blockedReason?: { code: string } }).blockedReason?.code).toBe("lead-turn-failed");
+    });
   });
 });

@@ -23,12 +23,14 @@ ppt/**/.slidep/
 
 # 评审中间产物：渲染图、评分卡草稿
 .work/
+.render-tmp/
 
 # 赛题交付产物：由 scripts/md2docx.py 生成
 deliverables/
 
 # 桌面应用构建产物
 desktop/release/
+desktop/release*/
 desktop/.electron-cache/
 
 # 测试缓存
@@ -65,3 +67,7 @@ runtime/pnpm-workspace.yaml
 web/.shot.mjs
 web/verify-stream.mjs
 runtime/pack-deps/
+
+# 本机调试脚手架与工具残留
+.uitest/
+.local/

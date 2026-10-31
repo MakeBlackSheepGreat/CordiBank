@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "content_policy": "1.0",
-  "title": "面向金融的蜂群多智能体系统-答辩材料",
+  "title": "面向金融的蜂群智能体系统-答辩材料",
   "content_approved": true,
   "content_version": "2026-10-28",
   "content_authorization": "用户指令：按照比赛的要求，除了视频，全部帮我做好",
@@ -20,7 +20,7 @@
       "id": "s01",
       "page_number": 1,
       "role": "cover",
-      "title": "面向金融的蜂群多智能体系统",
+      "title": "面向金融的蜂群智能体系统",
       "core_message": "七个角色分工完成一次银行事务，从听懂到办完全程可追溯",
       "key_points": [
         "2026 FINTECHATHON · 人工智能赛道",
@@ -45,7 +45,7 @@
           "native_intent": "native",
           "source_ref": "s01.key_points[0]",
           "confirmation_status": "confirmed",
-          "text": "面向金融的蜂群多智能体系统"
+          "text": "面向金融的蜂群智能体系统"
         },
         {
           "id": "e01-subtitle",
@@ -150,7 +150,7 @@
       "visual_brief": "三栏并排，每栏顶部巨型数字 96px 等宽字体，下接一句说明，栏顶分别为绿黄红三色横线；底部三张小卡说明怎么跑、在哪看、证据在哪。",
       "image_file": "pages/002.png",
       "image_status": "approved",
-      "speaker_notes": "三个数字：九十一项测试全通，二十一个内置工具加四个外部服务，注入拦截百分之百且正常请求零误拦。每个数字都能在评委机器上复跑。",
+      "speaker_notes": "三个数字：二百二十三项测试、二百一十一项通过，二十一个内置工具加四个外部服务，注入拦截百分之百且正常请求零误拦。每个数字都能在评委机器上复跑。",
       "elements": [
         {
           "id": "e02-n1",
@@ -159,7 +159,7 @@
           "native_intent": "native",
           "source_ref": "s02.key_points[0]",
           "confirmation_status": "confirmed",
-          "text": "91"
+          "text": "223"
         },
         {
           "id": "e02-n2",
@@ -1449,12 +1449,10 @@
       "title": "每一项都有命令与输出可复现",
       "core_message": "测试分布、红队结果与成本数据均可在评委机器上复跑",
       "key_points": [
-        "29",
-        "15",
-        "11",
-        "9",
-        "8",
-        "5",
+        "46",
+        "118",
+        "24",
+        "28",
         "红队四十条分四组：直接注入十二条、间接注入八条、越权操作八条、正常请求十二条。攻击拦截百分之百，正常请求误拦为零。",
         "两轮对话累计三千八百零六个提示词字符，命中前缀缓存三千四百五十六个，命中率百分之九十一。系统提示词从一千九百七十一字符降到一百八十四字符。"
       ],
@@ -1465,7 +1463,7 @@
       ],
       "explanation": "每个数字都配了对应的验证命令与完整输出，评委可原样复跑而不是只听结论。",
       "boundary": "缓存命中率取决于对话形态，不同输入下该数值会变化。",
-      "visual_brief": "左栏八张小卡四行两列排布，每张卡上方等宽数字下方名称，颜色按测试层分三档；下方一条横条写红队分组；右栏四张说明卡纵排，分别标成本体积、外部服务、模型不服从、证据在哪。",
+      "visual_brief": "左栏四张小卡两行两列排布（46 单元／118 集成／24 蜂群／28 模型），每张卡上方等宽数字下方名称，四卡下方一行小字说明四层口径；再下方一条横条写红队分组；右栏四张说明卡纵排，分别标成本体积、外部服务、模型不服从、证据在哪。",
       "image_file": "pages/011.png",
       "image_status": "approved",
       "speaker_notes": "每个数字都配了验证命令和完整输出，评委可以原样复跑，不是只听我们说。",
@@ -1477,7 +1475,7 @@
           "native_intent": "native",
           "source_ref": "s11.key_points[0]",
           "confirmation_status": "confirmed",
-          "text": "29"
+          "text": "223"
         },
         {
           "id": "e11-redteam",
@@ -1518,7 +1516,7 @@
       ],
       "density": {
         "mode": "detailed",
-        "reason": "数据证据页逐项列出八组测试分布数量与红队、成本两组结论，八组数量本身即该页的支撑要点"
+        "reason": "数据证据页逐项列出四层测试分布数量与红队、成本两组结论，四层数量本身即该页的支撑要点"
       },
       "display": {
         "coverage": [
@@ -1592,18 +1590,6 @@
             "claim": "key_points/5",
             "element_ids": [
               "e11-dist"
-            ]
-          },
-          {
-            "claim": "key_points/6",
-            "element_ids": [
-              "e11-redteam"
-            ]
-          },
-          {
-            "claim": "key_points/7",
-            "element_ids": [
-              "e11-cost"
             ]
           }
         ]

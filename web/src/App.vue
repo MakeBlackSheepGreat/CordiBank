@@ -8,6 +8,8 @@ import LeftPanel from './components/workbench/LeftPanel.vue'
 import Conversation from './components/workbench/Conversation.vue'
 import RightRail from './components/workbench/RightRail.vue'
 import HelpGuide from './components/workbench/HelpGuide.vue'
+import SettingsPanel from './components/workbench/SettingsPanel.vue'
+import ChannelWizard from './components/workbench/ChannelWizard.vue'
 
 const bank = useBank()
 
@@ -32,5 +34,7 @@ onMounted(() => {
       <RightRail class="wb-right" />
     </div>
     <HelpGuide />
+    <SettingsPanel />
+    <ChannelWizard />
   </div>
 </template>

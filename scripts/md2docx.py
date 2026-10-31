@@ -174,7 +174,7 @@ def convert(md_path, out_path):
                 sub = doc.add_paragraph()
                 sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 sub.paragraph_format.space_after = Pt(14)
-                run = sub.add_run("CordiBank　面向金融的蜂群多智能体系统")
+                run = sub.add_run("CordiBank　面向金融的蜂群智能体系统")
                 set_run_font(run, size=9.5, color=MUTED)
             else:
                 size = {2: 15, 3: 13, 4: 11.5, 5: 11, 6: 10.5}.get(level, 11)

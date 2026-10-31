@@ -5,3 +5,9 @@ export const draftPrefill = ref('')
 
 /** 跨组件轻量通道：功能指南弹层开关。 */
 export const helpOpen = ref(false)
+
+/** 跨组件轻量通道：设置面板开关。 */
+export const settingsOpen = ref(false)
+
+/** 跨组件轻量通道：渠道接入向导开关。 */
+export const wizardOpen = ref(false)

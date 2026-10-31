@@ -5,8 +5,9 @@ import { RuntimeError } from "../core/errors.ts";
 
 /**
  * 渠道接入中心：把 IM 渠道接进银行 Agent 会话。
- * - 微信：OpenClaw 网关 hooks 兼容入口（Bearer 令牌），由 OpenClaw 负责微信侧收发；
- * - QQ：OneBot v11 HTTP 上报（NapCat/Lagrange 兼容），回复经 HTTP API 送回；
+ * - 微信：ilink 官方接口收发，扫码接入由 channel-wizard 插件负责，本插件只做状态汇总；
+ * - QQ：官方机器人长连接（AppID + AppSecret）由「渠道接入向导」驱动，本插件只汇总状态与事件；
+ * - OneBot v11：兼容第三方桥的 HTTP 上报，回复经 HTTP API 送回；
  * - 钉钉：企业内部机器人官方 HTTP 回调（sign 加签验签），同步原样回包；
  * - 飞书：事件订阅官方回调（url_verification challenge 握手），经 tenant_access_token 送回；
  * - webhook：通用 HTTP 桥（任何能 POST 的桥接程序都可用），POST 进来即回 JSON；
@@ -39,7 +40,7 @@ export interface ChannelsStatus {
 
 const MAX_EVENTS = 50;
 const MAX_TEXT_CHARS = 2000;
-const CHANNEL_IDS = new Set(["onebot", "webhook", "dingtalk", "feishu", "openclaw"]);
+const CHANNEL_IDS = new Set(["onebot", "webhook", "dingtalk", "feishu"]);
 /** 钉钉官方验签允许的时间偏差（文档口径 ±1 小时）。 */
 const DINGTALK_SIGN_TOLERANCE_MS = 3600_000;
 
@@ -271,27 +272,6 @@ export function createChannelsPlugin(cfg: RuntimeConfig, deps: PluginDeps): Capa
     return { ok: true, channel: "feishu", from, reply, delivered: true };
   };
 
-  /** OpenClaw 网关 hooks 兼容入口：鉴权与载荷形状对齐官方 /hooks/agent 约定。 */
-  const handleOpenclaw = async (payload: Record<string, unknown>, meta: ChannelMeta): Promise<Record<string, unknown>> => {
-    if (cfg.channelOpenclawToken === "") {
-      throw new RuntimeError("ACCESS_DENIED", "OpenClaw hook 令牌未配置（CORDIBANK_CHANNEL_OPENCLAW_TOKEN）");
-    }
-    const auth = meta.authorization ?? "";
-    const provided = (meta["x-openclaw-token"] ?? (auth.startsWith("Bearer ") ? auth.slice(7) : "")) || str(payload, "token");
-    if (provided !== cfg.channelOpenclawToken) {
-      throw new RuntimeError("ACCESS_DENIED", "OpenClaw 令牌不匹配");
-    }
-    const message = str(payload, "message").trim() || str(payload, "text").trim();
-    if (message === "") throw new RuntimeError("INVALID_INPUT", "OpenClaw 上报需要非空 message 字段");
-    const from = str(payload, "from").trim() || str(payload, "name").trim() || "openclaw-user";
-    const safeFrom = from.replace(/[^A-Za-z0-9_.:-]/g, "_");
-    logEvent("openclaw", "微信:" + from, "in", message);
-    touch("openclaw");
-    const reply = await callAgent("openclaw-" + safeFrom, message);
-    logEvent("openclaw", "微信:" + from, "out", reply);
-    return { ok: true, channel: "openclaw", from, reply, delivered: true };
-  };
-
   const view = (id: string, name: string, description: string, state: ChannelState): ChannelView => {
     const entry = counters.get(id);
     return {
@@ -308,22 +288,37 @@ export function createChannelsPlugin(cfg: RuntimeConfig, deps: PluginDeps): Capa
     name: "channels",
     def: {
       service: "channel.hub",
-      methods: ["status", "incoming"],
-      description: "渠道接入中心：微信（OpenClaw 网关）、QQ（OneBot v11 上报）、钉钉/飞书官方回调与通用 webhook 桥，回复由银行 Agent 会话生成。",
+      methods: ["status", "incoming", "record"],
+      description: "渠道接入中心：微信（ilink）、QQ 官方机器人、OneBot v11 兼容桥、钉钉/飞书官方回调与通用 webhook 桥，回复由银行 Agent 会话生成。",
     },
     provider: {
       status: (): ChannelsStatus => ({
         channels: [
           view("web", "网页控制台", "CordiSwarm 控制台直连 RPC 与 SSE 流式", "active"),
           view("desktop", "桌面应用", "Windows 桌面壳内嵌同一控制台", "active"),
-          view("openclaw", "微信（OpenClaw）", "OpenClaw 网关 hooks 兼容入口，Bearer 令牌鉴权，POST /channel/openclaw/incoming", cfg.channelOpenclawToken === "" ? "unconfigured" : "ready"),
-          view("qq", "QQ", "OneBot v11 HTTP 上报（NapCat/Lagrange），私聊与群聊", cfg.channelQqApiUrl === "" ? "unconfigured" : "ready"),
+          view("wechat", "微信", "ilink 官方接口长轮询收发，扫码接入在「渠道接入向导」内完成", cfg.channelWechatBotToken === "" ? "unconfigured" : "ready"),
+          view("qq", "QQ 官方机器人", "开放平台长连接收发，接入在「渠道接入向导」内完成", cfg.channelQqBotAppId === "" ? "unconfigured" : "ready"),
+          view("onebot", "OneBot v11 兼容桥", "第三方桥 HTTP 上报，回复经上报端 HTTP API 送回", cfg.channelQqApiUrl === "" ? "unconfigured" : "ready"),
           view("dingtalk", "钉钉", "企业内部机器人官方回调，sign 加签验签，同步回包", cfg.channelDingtalkSecret === "" ? "unconfigured" : "ready"),
           view("feishu", "飞书", "事件订阅官方回调，challenge 握手 + tenant_access_token 送回", cfg.channelFeishuAppId === "" ? "unconfigured" : "ready"),
           view("webhook", "通用 webhook 桥", "POST /channel/webhook/incoming，由桥接程序送回", "ready"),
         ],
         events: [...events].reverse(),
       }),
+      /**
+       * 记账：其它插件（如渠道接入向导）跑自有收发链路时，把进出消息记到这里，
+       * 渠道列表的消息计数与事件流才与真实收发一致。
+       */
+      record: (channel: unknown, from: unknown, direction: unknown, text: unknown): { ok: true } => {
+        const name = typeof channel === "string" ? channel.trim() : "";
+        if (name === "") throw new RuntimeError("INVALID_INPUT", "record 需要渠道名");
+        if (direction !== "in" && direction !== "out") throw new RuntimeError("INVALID_INPUT", "direction 只接受 in 或 out");
+        const who = typeof from === "string" && from.trim() !== "" ? from.trim() : "unknown";
+        const body = typeof text === "string" ? text : "";
+        logEvent(name, who, direction, body);
+        touch(name);
+        return { ok: true };
+      },
       incoming: async (channel: unknown, payload: unknown, meta?: unknown): Promise<Record<string, unknown>> => {
         const name = typeof channel === "string" ? channel : "";
         if (!CHANNEL_IDS.has(name)) throw new RuntimeError("NOT_FOUND", "未知渠道：" + name);
@@ -335,7 +330,6 @@ export function createChannelsPlugin(cfg: RuntimeConfig, deps: PluginDeps): Capa
         if (name === "onebot") return handleOnebot(record);
         if (name === "dingtalk") return handleDingtalk(record, headers);
         if (name === "feishu") return handleFeishu(record);
-        if (name === "openclaw") return handleOpenclaw(record, headers);
         return handleWebhook(record);
       },
     },

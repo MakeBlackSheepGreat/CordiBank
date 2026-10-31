@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { DECISION_LABELS, LEVEL_LABELS, RULE_LABELS, useBank } from '../../stores/bank'
+import { settingsOpen } from '../../lib/ui-bus'
+import type { SwarmRole } from '../../lib/bank-types'
 
 const bank = useBank()
+/** 右栏页签：判定过程与运行状态分两屏，避免六张卡平铺。 */
+const railTab = ref<'judge' | 'runtime'>('judge')
 const fxAmount = ref(100)
 const fxCurrency = ref('USD')
 const FX_CURRENCIES = ['USD', 'EUR', 'JPY', 'HKD', 'GBP', 'SGD', 'AUD']
@@ -11,6 +15,36 @@ const last = computed(() => bank.lastAgent?.reply ?? null)
 const decision = computed(() => last.value?.decision ?? null)
 const auditRows = computed(() => (bank.audit?.records ?? []).slice(-12).reverse())
 const chain = computed(() => bank.audit?.chain ?? null)
+/** 蜂群轨迹：只有走蜂群入口的回复才带，是七角色的真实分工与耗时。 */
+const trace = computed(() => last.value?.trace ?? null)
+
+/** 角色到蜂群三角色的映射：意图归探索者，执行归执行者，其余归验证者。 */
+const ROLE_CLASS: Record<SwarmRole, string> = {
+  intent: 'role-explorer',
+  risk: 'role-validator',
+  compliance: 'role-validator',
+  experience: 'role-validator',
+  arbiter: 'role-validator',
+  executor: 'role-worker',
+  auditor: 'role-validator',
+}
+
+const ROLE_TEAM: Record<SwarmRole, string> = {
+  intent: '探索者',
+  risk: '验证者',
+  compliance: '验证者',
+  experience: '验证者',
+  arbiter: '验证者',
+  executor: '执行者',
+  auditor: '验证者',
+}
+
+function stepLevelClass(level: string): string {
+  if (level === 'red') return 'step__dot--danger'
+  if (level === 'yellow') return 'step__dot--warn'
+  if (level === 'green') return 'step__dot--ok'
+  return 'step__dot--none'
+}
 
 function ruleLabel(rule: string): string {
   return RULE_LABELS[rule] ?? '判定规则'
@@ -40,6 +74,30 @@ async function onConvert(): Promise<void> {
 <template>
   <div class="right-rail">
     <aside class="right-rail__scroll">
+      <div class="rail-tabs" role="tablist" aria-label="右栏视图">
+        <button
+          class="rail-tab"
+          :class="{ 'is-on': railTab === 'judge' }"
+          type="button"
+          role="tab"
+          :aria-selected="railTab === 'judge'"
+          @click="railTab = 'judge'"
+        >
+          判定过程
+        </button>
+        <button
+          class="rail-tab"
+          :class="{ 'is-on': railTab === 'runtime' }"
+          type="button"
+          role="tab"
+          :aria-selected="railTab === 'runtime'"
+          @click="railTab = 'runtime'"
+        >
+          运行状态
+        </button>
+      </div>
+
+      <template v-if="railTab === 'judge'">
       <section class="rail-card">
         <div class="rail-card__head">
           <h2>风险判定</h2>
@@ -71,7 +129,32 @@ async function onConvert(): Promise<void> {
         </template>
       </section>
 
-      <section class="rail-card">
+      <section v-if="trace" class="rail-card">
+        <div class="rail-card__head">
+          <h2>蜂群轨迹</h2>
+          <span class="state-badge state-accent">{{ trace.steps.length }} 步 · {{ trace.totalMs }}ms</span>
+        </div>
+        <ol class="trace">
+          <li v-for="(step, index) in trace.steps" :key="`${step.role}-${index}`" class="trace__step">
+            <span class="role-badge" :class="ROLE_CLASS[step.role]">{{ ROLE_TEAM[step.role] }}</span>
+            <div class="trace__body">
+              <div class="trace__head">
+                <span class="trace__label">{{ step.label }}</span>
+                <span class="trace__ms">{{ step.elapsedMs }}ms</span>
+              </div>
+              <div class="trace__io">
+                <span class="trace__in">{{ step.input }}</span>
+                <span class="trace__arrow">→</span>
+                <span class="trace__out">{{ step.output }}</span>
+              </div>
+            </div>
+            <span class="trace__dot" :class="stepLevelClass(step.level)" />
+          </li>
+        </ol>
+        <div class="muted">三评估官并行（{{ trace.parallel }} 路），任一判定拦截即整体拦截；轨迹随本次回复返回。</div>
+      </section>
+
+      <section v-else class="rail-card">
         <div class="rail-card__head">
           <h2>执行链路</h2>
           <span class="rail-card__hint">三色即蜂群分工</span>
@@ -137,7 +220,9 @@ async function onConvert(): Promise<void> {
           本会话 {{ auditRows.length }} 条 · 全链 {{ chain?.total ?? 0 }} 条（含历史会话）· 卡号与手机号已脱敏
         </div>
       </section>
+      </template>
 
+      <template v-else>
       <section class="rail-card">
         <div class="rail-card__head">
           <h2>工具与外部服务</h2>
@@ -216,30 +301,37 @@ async function onConvert(): Promise<void> {
       </section>
 
       <section class="rail-card">
-    <h2>渠道接入</h2>
-    <p class="muted">QQ 走 OneBot v11 HTTP 上报，微信走通用 webhook 桥，均由同一套银行智能体处理。</p>
-    <div v-if="bank.channels === null" class="muted">渠道状态加载中…</div>
-    <template v-else>
-      <ul class="chan">
-        <li v-for="chan in bank.channels.channels" :key="chan.id" class="chan__row">
-          <div class="chan__meta">
-            <span class="chan__name">{{ chan.name }}</span>
-            <span class="state-badge" :class="chan.state === 'active' ? 'state-ok' : chan.state === 'ready' ? 'state-warn' : 'state-neutral'">{{ chan.state === 'active' ? '使用中' : chan.state === 'ready' ? '已配置' : '待配置' }}</span>
-          </div>
-          <span class="chan__desc">{{ chan.description }}</span>
-          <span class="chan__count">{{ chan.messageCount }} 条消息</span>
-        </li>
-      </ul>
-      <div v-if="bank.channels.events.length > 0" class="chan-events">
-        <div v-for="(ev, i) in bank.channels.events.slice(0, 5)" :key="i" class="chan-event">
-          <span class="chan-event__dir" :class="ev.direction === 'in' ? 'is-in' : 'is-out'">{{ ev.direction === 'in' ? '收' : '发' }}</span>
-          <span class="chan-event__ch">{{ ev.channel }}</span>
-          <span class="chan-event__text">{{ ev.text }}</span>
+        <div class="rail-card__head">
+          <h2>渠道接入</h2>
+          <button class="btn btn--small" type="button" @click="settingsOpen = true">配置凭据</button>
         </div>
-      </div>
-    </template>
-  </section>
-  <button class="reset" type="button" :disabled="bank.busy" @click="bank.reset()">重置演示数据</button>
+        <div v-if="bank.channels === null" class="muted">渠道状态加载中…</div>
+        <ul v-else class="chan">
+          <li v-for="chan in bank.channels.channels" :key="chan.id" class="chan__row">
+            <div class="chan__meta">
+              <span class="chan__name">{{ chan.name }}</span>
+              <span
+                class="state-badge"
+                :class="chan.state === 'active' ? 'state-ok' : chan.state === 'ready' ? 'state-warn' : 'state-neutral'"
+              >
+                {{ chan.state === 'active' ? '使用中' : chan.state === 'ready' ? '已配置' : '待配置' }}
+              </span>
+            </div>
+            <span class="chan__count">{{ chan.messageCount }} 条消息</span>
+          </li>
+        </ul>
+        <div v-if="bank.channels !== null && bank.channels.events.length > 0" class="chan-events">
+          <div v-for="(ev, i) in bank.channels.events.slice(0, 4)" :key="i" class="chan-event">
+            <span class="chan-event__dir" :class="ev.direction === 'in' ? 'is-in' : 'is-out'">{{ ev.direction === 'in' ? '收' : '发' }}</span>
+            <span class="chan-event__ch">{{ ev.channel }}</span>
+            <span class="chan-event__text">{{ ev.text }}</span>
+          </div>
+        </div>
+        <div class="muted">凭据在「设置」里填写，保存即生效。</div>
+      </section>
+      </template>
+
+      <button class="reset" type="button" :disabled="bank.busy" @click="bank.reset()">重置演示数据</button>
     </aside>
   </div>
 </template>
@@ -261,6 +353,32 @@ async function onConvert(): Promise<void> {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.rail-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--color-surface-2);
+}
+
+.rail-tab {
+  flex: 1;
+  padding: 5px 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-ink-4);
+  font-size: var(--font-size-caption);
+  cursor: pointer;
+}
+
+.rail-tab.is-on {
+  background: var(--color-surface-1-solid);
+  color: var(--color-ink-1);
+  font-weight: var(--font-weight-medium);
+  box-shadow: 0 1px 3px var(--color-shadow);
 }
 
 .rail-card {
@@ -443,6 +561,101 @@ async function onConvert(): Promise<void> {
   color: var(--color-ink-1);
   font-weight: var(--font-weight-medium);
   font-variant-numeric: tabular-nums;
+}
+
+.trace {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trace__step {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: start;
+  padding: 7px 8px;
+  border-radius: 9px;
+  background: var(--color-surface-2);
+}
+
+.trace__step .role-badge {
+  padding: 1px 7px;
+  font-size: var(--font-size-micro);
+  white-space: nowrap;
+}
+
+.trace__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.trace__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.trace__label {
+  font-size: 11px;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-ink-1);
+}
+
+.trace__ms {
+  font-size: var(--font-size-micro);
+  color: var(--color-ink-5);
+  font-variant-numeric: tabular-nums;
+}
+
+.trace__io {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px;
+  font-size: var(--font-size-micro);
+  color: var(--color-ink-4);
+}
+
+.trace__in {
+  color: var(--color-ink-5);
+}
+
+.trace__arrow {
+  color: var(--color-ink-5);
+}
+
+.trace__out {
+  color: var(--color-ink-2);
+}
+
+.trace__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-top: 5px;
+}
+
+.trace__dot--ok {
+  background: var(--color-ok);
+}
+
+.trace__dot--warn {
+  background: var(--color-warn);
+}
+
+.trace__dot--danger {
+  background: var(--color-danger);
+}
+
+.trace__dot--none {
+  background: var(--color-stroke-2);
 }
 
 .audit {

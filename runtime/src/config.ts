@@ -51,6 +51,12 @@ export interface RuntimeConfig {
   channelQqApiUrl: string;
   /** QQ API 访问令牌（Bearer），可空；同时用于校验 OneBot 上报的 token 字段。 */
   channelQqToken: string;
+  /** QQ 官方机器人 AppID（开放平台 q.qq.com 创建机器人后获取），空串=未接入。 */
+  channelQqBotAppId: string;
+  /** QQ 官方机器人 AppSecret，用于换取 access_token。 */
+  channelQqBotAppSecret: string;
+  /** QQ 开放平台接口基址，默认 https://api.bot.qq.com。 */
+  channelQqBotApiBase: string;
   /** 钉钉企业内部机器人加签密钥（官方回调 sign 验签用），空串=未接入。 */
   channelDingtalkSecret: string;
   /** 飞书应用 App ID（换取 tenant_access_token 用），空串=未接入。 */
@@ -61,8 +67,12 @@ export interface RuntimeConfig {
   channelFeishuToken: string;
   /** 飞书开放平台基址，默认 https://open.feishu.cn。 */
   channelFeishuApiBase: string;
-  /** OpenClaw 网关 hooks 令牌（微信接入），空串=未接入。 */
-  channelOpenclawToken: string;
+  /** 微信 ilink 机器人令牌：向导扫码成功后由服务端下发并落盘，空串=未接入。 */
+  channelWechatBotToken: string;
+  /** 微信 ilink 机器人 ID（ilink_bot_id），用于标识已接入的机器人账号。 */
+  channelWechatAccountId: string;
+  /** 微信 ilink 接口基址，扫码跳转时可能由服务端下发专属 host，默认官方地址。 */
+  channelWechatBaseUrl: string;
 }
 
 /** 工具声明范围；非法值回落到全量。 */
@@ -162,12 +172,17 @@ export function loadConfig(overrides: Partial<RuntimeConfig> = {}): RuntimeConfi
     opsDir: overrides.opsDir ?? process.env.CORDIBANK_OPS_DIR?.trim() ?? path.join(repoRoot, ".ops-sandbox"),
     channelQqApiUrl: overrides.channelQqApiUrl ?? process.env.CORDIBANK_CHANNEL_QQ_API?.trim() ?? "",
     channelQqToken: overrides.channelQqToken ?? process.env.CORDIBANK_CHANNEL_QQ_TOKEN?.trim() ?? "",
+    channelQqBotAppId: overrides.channelQqBotAppId ?? process.env.CORDIBANK_CHANNEL_QQBOT_APP_ID?.trim() ?? "",
+    channelQqBotAppSecret: overrides.channelQqBotAppSecret ?? process.env.CORDIBANK_CHANNEL_QQBOT_APP_SECRET?.trim() ?? "",
+    channelQqBotApiBase: overrides.channelQqBotApiBase ?? process.env.CORDIBANK_CHANNEL_QQBOT_API?.trim() ?? "https://api.bot.qq.com",
     channelDingtalkSecret: overrides.channelDingtalkSecret ?? process.env.CORDIBANK_CHANNEL_DINGTALK_SECRET?.trim() ?? "",
     channelFeishuAppId: overrides.channelFeishuAppId ?? process.env.CORDIBANK_CHANNEL_FEISHU_APP_ID?.trim() ?? "",
     channelFeishuAppSecret: overrides.channelFeishuAppSecret ?? process.env.CORDIBANK_CHANNEL_FEISHU_APP_SECRET?.trim() ?? "",
     channelFeishuToken: overrides.channelFeishuToken ?? process.env.CORDIBANK_CHANNEL_FEISHU_TOKEN?.trim() ?? "",
     channelFeishuApiBase: overrides.channelFeishuApiBase ?? process.env.CORDIBANK_CHANNEL_FEISHU_API_BASE?.trim() ?? "https://open.feishu.cn",
-    channelOpenclawToken: overrides.channelOpenclawToken ?? process.env.CORDIBANK_CHANNEL_OPENCLAW_TOKEN?.trim() ?? "",
+    channelWechatBotToken: overrides.channelWechatBotToken ?? process.env.CORDIBANK_CHANNEL_WECHAT_TOKEN?.trim() ?? "",
+    channelWechatAccountId: overrides.channelWechatAccountId ?? process.env.CORDIBANK_CHANNEL_WECHAT_ACCOUNT?.trim() ?? "",
+    channelWechatBaseUrl: overrides.channelWechatBaseUrl ?? process.env.CORDIBANK_CHANNEL_WECHAT_BASE?.trim() ?? "https://ilinkai.weixin.qq.com",
   };
 }
 

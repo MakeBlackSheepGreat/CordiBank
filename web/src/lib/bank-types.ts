@@ -32,6 +32,28 @@ export interface ToolResult {
   data?: unknown
 }
 
+/** 蜂群角色：与运行时 bank/swarm.ts 的 SwarmRole 一一对应。 */
+export type SwarmRole = 'intent' | 'risk' | 'compliance' | 'experience' | 'arbiter' | 'executor' | 'auditor'
+
+/** 一次协同的一步，字段与运行时返回一致，界面据此展示分工。 */
+export interface SwarmStep {
+  role: SwarmRole
+  label: string
+  input: string
+  output: string
+  level: RiskLevel | 'none'
+  elapsedMs: number
+  ok: boolean
+}
+
+/** 协同轨迹：只有走蜂群入口时存在。 */
+export interface SwarmTrace {
+  steps: SwarmStep[]
+  /** 并行分支数，当前为三个评估器。 */
+  parallel: number
+  totalMs: number
+}
+
 export interface BankChatReply {
   sessionId: string
   turn: number
@@ -45,6 +67,8 @@ export interface BankChatReply {
   missing: string[]
   /** 本轮意图由规则还是模型给出。 */
   intentSource?: 'rule' | 'model'
+  /** 蜂群协同轨迹：界面据此展示七角色分工。 */
+  trace?: SwarmTrace
 }
 
 /** 模型层状态：界面只展示供应商标识与模型名，不接触凭据。 */
@@ -120,6 +144,8 @@ export interface ScenarioView {
   pain: string
   tools: string[]
   evidence: string
+  /** 可直接发送的示例问法，由服务端从演示剧本取第一条用户台词。 */
+  demo?: string
 }
 
 export interface ScenarioBundle {
@@ -209,8 +235,8 @@ export interface BankMessage {
   reply?: BankChatReply
   /** 生成该回复时的推理过程，仅在模型开启思考时存在。 */
   reasoning?: string
-  /** 该条回复来自规则编排还是模型问答。 */
-  source?: 'deal' | 'ask'
+  /** 该条回复来自规则编排、蜂群协同还是模型问答。 */
+  source?: 'deal' | 'swarm' | 'ask'
 }
 /** 渠道状态：active=当前入口，ready=已配置，unconfigured=待配置。 */
 export interface ChannelView {
@@ -234,3 +260,108 @@ export interface ChannelsStatus {
   channels: ChannelView[]
   events: ChannelEvent[]
 }
+
+/** 设置视图：字段与 runtime plugins/settings.ts 的 SettingsView 一致，密钥只以脱敏形式出现。 */
+export interface LlmSettingsView {
+  provider: string
+  providerName: string
+  model: string
+  baseUrl: string
+  api: string
+  keyConfigured: boolean
+  keyMasked: string
+  effort: EffortLevel
+  intentMode: 'rule' | 'hybrid' | 'model'
+  toolScope: 'all' | 'scene'
+}
+
+/** 供应商选项：设置面板的下拉数据。 */
+export interface ProviderOptionView {
+  id: string
+  name: string
+  defaultModel?: string
+  keyConfigured: boolean
+  active: boolean
+}
+
+/** 渠道字段：值一律脱敏，空串表示未配置。 */
+export interface ChannelFieldView {
+  key: string
+  label: string
+  valueMasked: string
+}
+
+/** IM 渠道设置项。 */
+export interface ChannelSettingsView {
+  id: string
+  name: string
+  description: string
+  configured: boolean
+  fields: ChannelFieldView[]
+}
+
+/** 设置总视图。 */
+export interface SettingsView {
+  llm: LlmSettingsView
+  providers: ProviderOptionView[]
+  channels: ChannelSettingsView[]
+  settingsFile: string
+}
+
+/** 模型探活结果。 */
+export interface ProbeResult {
+  ok: boolean
+  latencyMs: number
+  model: string
+  endpoint: string
+  message: string
+}
+
+/** 微信扫码：ilink 取码结果，imageUrl 由前端渲染成二维码。 */
+export interface IlinkQr {
+  qrcode: string
+  imageUrl: string
+}
+
+/** 微信扫码状态：wait 未扫 / scaned 已扫 / need_verifycode 需数字校验 / confirmed 已确认。 */
+export type IlinkQrStatus = 'wait' | 'scaned' | 'need_verifycode' | 'expired' | 'confirmed' | 'binded'
+
+/** 一次微信扫码轮询的回包。 */
+export interface IlinkQrStatusView {
+  status: IlinkQrStatus
+  botToken: string
+  accountId: string
+  baseUrl: string
+  userId: string
+  message: string
+}
+
+/** 微信渠道在向导里的运行视图。 */
+export interface WechatWizardView {
+  connected: boolean
+  accountId: string
+  running: boolean
+  messageCount: number
+  lastMessageAt: string
+  error: string
+}
+
+/** QQ 官方机器人在向导里的运行视图。 */
+export interface QqWizardView {
+  configured: boolean
+  appId: string
+  connected: boolean
+  messageCount: number
+  lastMessageAt: string
+  lastError: string
+  message: string
+  portalUrl: string
+}
+
+/** 渠道接入向导总视图。 */
+export interface WizardState {
+  wechat: WechatWizardView
+  qq: QqWizardView
+  dataDir: string
+}
+

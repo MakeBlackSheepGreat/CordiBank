@@ -69,6 +69,7 @@ const BANK_AGENT_ARITY: Record<string, number> = {
   tools: 0,
   effort: 0,
   setEffort: 1,
+  reload: 0,
 };
 
 /** 包一层参数个数硬校验，防止畸形 RPC 请求靠忽略多余参数蒙混过关。 */
@@ -201,7 +202,7 @@ export function createBankAgentPlugin(cfg: RuntimeConfig = loadConfig(), mcp?: C
     name: "bank-agent",
     def: {
       service: "bank.agent",
-      methods: ["chat", "swarm", "confirm", "cancel", "context", "audit", "scenarios", "intents", "redteam", "reset", "state", "model", "ask", "tools", "effort", "setEffort"],
+      methods: ["chat", "swarm", "confirm", "cancel", "context", "audit", "scenarios", "intents", "redteam", "reset", "state", "model", "ask", "tools", "effort", "setEffort", "reload"],
       description: "银行 AI 智能体：意图理解（规则加模型）、三色判定、确认令牌、审计链与外部工具接入",
     },
     panel: {
@@ -242,8 +243,13 @@ export function createBankAgentPlugin(cfg: RuntimeConfig = loadConfig(), mcp?: C
         return engine().auditLog(sessionId, limit);
       },
       scenarios(): unknown {
+        // demo 是可直接发送的示例问法：取剧本里第一条用户台词，界面用它填充输入框。
+        const scenarios = SCENARIOS.map((item) => ({
+          ...item,
+          demo: item.steps.find((step) => step.role === "user")?.text ?? "",
+        }));
         return {
-          scenarios: SCENARIOS,
+          scenarios,
           security: SECURITY_DEMOS,
           tools: listToolSpecs(),
           contracts: TOOL_CONTRACTS,
@@ -348,6 +354,19 @@ export function createBankAgentPlugin(cfg: RuntimeConfig = loadConfig(), mcp?: C
         if (model === null) throw new Error("模型未初始化");
         model.setEffort(value);
         return { effort: model.effort, options: EFFORT_LEVELS };
+      },
+      /**
+       * 丢弃全部惰性实例：设置改动后由下一次调用按新 cfg 重建模型客户端与编排器。
+       * 不在这里重建，避免设置保存时就去连模型（未配 key 时也能保存渠道）。
+       */
+      reload(): { ok: true } {
+        agent = null;
+        brain = null;
+        registry = null;
+        reviewer = null;
+        classifier = null;
+        syncPromise = null;
+        return { ok: true };
       },
     }),
   };

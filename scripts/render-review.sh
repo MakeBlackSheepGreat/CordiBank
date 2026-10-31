@@ -9,7 +9,7 @@ SKILL="${SLIDEMUSE_SKILL:-$HOME/.workbuddy/skills/slidemuse}"
 PY="$SKILL/.venv/Scripts/python.exe"
 [ -x "$PY" ] || PY="$SKILL/.venv/bin/python"
 
-DECK="${1:-$ROOT/deliverables/面向金融的蜂群多智能体系统-答辩材料.pptx}"
+DECK="${1:-$ROOT/deliverables/面向金融的蜂群智能体系统-答辩材料.pptx}"
 OUT="${2:-$ROOT/.work/render-review}"
 
 if [ ! -f "$DECK" ]; then

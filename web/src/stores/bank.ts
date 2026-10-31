@@ -9,13 +9,19 @@ import type {
   BankStateView,
   ChannelsStatus,
   EffortLevel,
+  IlinkQr,
+  IlinkQrStatusView,
   EffortStatus,
   ModelStatus,
+  ProbeResult,
   RedTeamReport,
   ScenarioBundle,
+  QqWizardView,
+  SettingsView,
   SkillDetailView,
   SkillSummaryView,
   ToolSpec,
+  WizardState,
 } from '../lib/bank-types'
 
 const SESSION_KEY = 'cordibank.session'
@@ -131,8 +137,12 @@ export const useBank = defineStore('bank', () => {
     return state.value.account.cardNo.slice(-4)
   })
 
-  async function call<T>(method: string, params: unknown): Promise<T | null> {
-    const res = (await rpc.call(method, params)) as { ok: boolean; result?: unknown; error?: string }
+  async function call<T>(method: string, params: unknown, timeoutMs?: number): Promise<T | null> {
+    const res = (await rpc.call(method, params, timeoutMs === undefined ? {} : { timeoutMs })) as {
+      ok: boolean
+      result?: unknown
+      error?: string
+    }
     if (!res.ok) {
       online.value = false
       error.value = res.error ?? '运行时不可达'
@@ -152,14 +162,14 @@ export const useBank = defineStore('bank', () => {
     error: '调用失败',
   }
 
-  function pushAgent(reply: BankChatReply, extra: { reasoning?: string } = {}): void {
+  function pushAgent(reply: BankChatReply, extra: { reasoning?: string; source?: 'deal' | 'swarm' } = {}): void {
     messages.value.push({
       id: nextId(),
       role: 'agent',
       text: reply.reply,
       ts: new Date().toISOString(),
       reply,
-      source: 'deal',
+      source: extra.source ?? 'deal',
       ...(extra.reasoning === undefined || extra.reasoning === '' ? {} : { reasoning: extra.reasoning }),
     })
     if (reply.confirmation !== undefined) {
@@ -302,6 +312,168 @@ export const useBank = defineStore('bank', () => {
     if (status !== null) channels.value = status
   }
 
+  /** 设置视图：模型密钥与 IM 渠道的当前配置，密钥只以脱敏形式返回。 */
+  const settings = ref<SettingsView | null>(null)
+  const settingsBusy = ref(false)
+  const settingsError = ref('')
+  const probeResult = ref<ProbeResult | null>(null)
+
+  /** 读取设置视图（真实 RPC：settings.get）。 */
+  async function loadSettings(): Promise<void> {
+    const view = await call<SettingsView>('settings.get', [])
+    if (view !== null) settings.value = view
+  }
+
+  /**
+   * 保存设置：落盘即热生效，因此保存后要重新拉取模型状态、工具清单与渠道状态。
+   * 返回是否保存成功，供界面决定是否关闭面板。
+   */
+  async function saveSettings(payload: unknown): Promise<boolean> {
+    if (settingsBusy.value) return false
+    settingsBusy.value = true
+    settingsError.value = ''
+    probeResult.value = null
+    try {
+      const res = (await rpc.call('settings.set', [payload], { timeoutMs: 60_000 })) as {
+        ok: boolean
+        result?: unknown
+        error?: string
+      }
+      if (!res.ok) {
+        settingsError.value = res.error ?? '保存失败'
+        return false
+      }
+      settings.value = res.result as SettingsView
+      await loadMcp()
+      await loadChannels()
+      await loadEffort()
+      return true
+    } finally {
+      settingsBusy.value = false
+    }
+  }
+
+  /** 探活：用当前配置真实发一次最小请求，结果来自服务端回包。 */
+  async function probeModel(): Promise<void> {
+    if (settingsBusy.value) return
+    settingsBusy.value = true
+    settingsError.value = ''
+    try {
+      const res = (await rpc.call('settings.probe', [], { timeoutMs: 60_000 })) as {
+        ok: boolean
+        result?: unknown
+        error?: string
+      }
+      if (!res.ok) {
+        probeResult.value = null
+        settingsError.value = res.error ?? '探活失败'
+        return
+      }
+      probeResult.value = res.result as ProbeResult
+    } finally {
+      settingsBusy.value = false
+    }
+  }
+
+  /** 渠道接入向导：微信 ilink 扫码与 QQ 官方机器人凭据接入的全部状态。 */
+  const wizard = ref<WizardState | null>(null)
+  /** 正在进行的向导动作名，空串表示空闲；界面据此禁用按钮。 */
+  const wizardBusy = ref('')
+  const wizardError = ref('')
+  /** 微信登录二维码（ilink 回包的 qrcode 与 qrcode_img_content）。 */
+  const wechatQr = ref<IlinkQr | null>(null)
+  /** 微信扫码状态：wait / scaned / need_verifycode / confirmed。 */
+  const wechatStatus = ref<IlinkQrStatusView | null>(null)
+
+  /** 向导动作的统一封装：同一时刻只允许一个动作，失败写 wizardError。 */
+  async function wizardStep<T>(name: string, method: string, params: unknown, timeoutMs: number): Promise<T | null> {
+    if (wizardBusy.value !== '') return null
+    wizardBusy.value = name
+    wizardError.value = ''
+    try {
+      const res = (await rpc.call(method, params, { timeoutMs })) as {
+        ok: boolean
+        result?: unknown
+        error?: string
+      }
+      if (!res.ok) {
+        wizardError.value = res.error ?? '操作失败'
+        return null
+      }
+      return res.result as T
+    } finally {
+      wizardBusy.value = ''
+    }
+  }
+
+  /** 读取向导总状态（channel.wizard.state）。 */
+  async function loadWizard(): Promise<void> {
+    const view = await call<WizardState>('channel.wizard.state', [])
+    if (view !== null) wizard.value = view
+  }
+
+  /** 微信：取登录二维码。 */
+  async function wizardWechatQr(): Promise<void> {
+    const qr = await wizardStep<IlinkQr>('wechatQr', 'channel.wizard.wechatQr', [], 30_000)
+    if (qr === null) return
+    wechatQr.value = qr
+    wechatStatus.value = null
+  }
+
+  /** 微信：轮询扫码状态，服务端长轮询 35s，故超时给到 60s。 */
+  async function wizardWechatPoll(verifyCode = ''): Promise<IlinkQrStatusView | null> {
+    const qrcode = wechatQr.value?.qrcode ?? ''
+    if (qrcode === '') return null
+    const view = await wizardStep<IlinkQrStatusView>(
+      'wechatPoll',
+      'channel.wizard.wechatPoll',
+      [qrcode, verifyCode],
+      60_000,
+    )
+    if (view === null) return null
+    wechatStatus.value = view
+    if (view.status === 'confirmed' || view.status === 'binded') {
+      wechatQr.value = null
+      await loadWizard()
+      await loadChannels()
+    }
+    return view
+  }
+
+  /** 微信：退出接入。 */
+  async function wizardWechatLogout(): Promise<void> {
+    const view = await wizardStep<WizardState>('wechatLogout', 'channel.wizard.wechatLogout', [], 30_000)
+    if (view === null) return
+    wizard.value = view
+    wechatQr.value = null
+    wechatStatus.value = null
+    await loadChannels()
+  }
+
+  /** QQ：保存 AppID 与 AppSecret，后端先换 access_token 真校验再落盘。 */
+  async function wizardQqSave(appId: string, appSecret: string): Promise<void> {
+    const view = await wizardStep<QqWizardView>('qqSave', 'channel.wizard.qqSave', [appId, appSecret], 60_000)
+    if (view === null) return
+    wizard.value = wizard.value === null ? null : { ...wizard.value, qq: view }
+    await loadChannels()
+  }
+
+  /** QQ：用已保存的凭据建立官方长连接并等到 READY。 */
+  async function wizardQqConnect(): Promise<void> {
+    const view = await wizardStep<QqWizardView>('qqConnect', 'channel.wizard.qqConnect', [], 90_000)
+    if (view === null) return
+    wizard.value = wizard.value === null ? null : { ...wizard.value, qq: view }
+    await loadChannels()
+  }
+
+  /** QQ：断开官方长连接。 */
+  async function wizardQqDisconnect(): Promise<void> {
+    const view = await wizardStep<QqWizardView>('qqDisconnect', 'channel.wizard.qqDisconnect', [], 60_000)
+    if (view === null) return
+    wizard.value = wizard.value === null ? null : { ...wizard.value, qq: view }
+    await loadChannels()
+  }
+
   async function init(): Promise<void> {
     const stored = localStorage.getItem(SESSION_KEY)
     sessionId.value = stored !== null && stored !== '' ? stored : `web-${Date.now().toString(36)}`
@@ -319,6 +491,8 @@ export const useBank = defineStore('bank', () => {
     await loadSkills()
     await loadChannels()
     await loadEffort()
+    await loadSettings()
+    await loadWizard()
   }
 
   async function refresh(): Promise<void> {
@@ -333,10 +507,10 @@ export const useBank = defineStore('bank', () => {
   /**
    * 发送一句话。
    *
-   * deal 走规则编排与完整安全链，ask 走模型问答。
-   * 两条路径都经流式通道，正文逐字出现，结束事件给出完整结果。
+   * deal 走规则编排与完整安全链，swarm 走七角色协同（多一层并行评估与轨迹），
+   * ask 走模型问答。三条路径都经流式通道，正文逐字出现，结束事件给出完整结果。
    */
-  async function send(text: string, mode: 'deal' | 'ask' = 'deal'): Promise<void> {
+  async function send(text: string, mode: 'deal' | 'swarm' | 'ask' = 'deal'): Promise<void> {
     const trimmed = text.trim()
     if (trimmed === '' || busy.value) return
     messages.value.push({ id: nextId(), role: 'user', text: trimmed, ts: new Date().toISOString() })
@@ -345,8 +519,8 @@ export const useBank = defineStore('bank', () => {
     streamText.value = ''
     streamReasoning.value = ''
 
-    const method = mode === 'deal' ? 'bank.agent.chat' : 'bank.agent.ask'
-    const params = mode === 'deal' ? [sessionId.value, trimmed] : [sessionId.value, trimmed, effort.value]
+    const method = mode === 'deal' ? 'bank.agent.chat' : mode === 'swarm' ? 'bank.agent.swarm' : 'bank.agent.ask'
+    const params = mode === 'ask' ? [sessionId.value, trimmed, effort.value] : [sessionId.value, trimmed]
     const reply = await rpc.stream(method, params, {
       onDelta: (delta) => {
         if (delta.reasoning !== '') streamReasoning.value += delta.reasoning
@@ -366,8 +540,8 @@ export const useBank = defineStore('bank', () => {
     }
 
     const reasoning = streamReasoning.value
-    if (mode === 'deal') {
-      pushAgent(reply.result as BankChatReply, { reasoning })
+    if (mode === 'deal' || mode === 'swarm') {
+      pushAgent(reply.result as BankChatReply, { reasoning, source: mode })
     } else {
       applyAsk(reply.result as AskResult, reasoning)
     }
@@ -474,6 +648,25 @@ export const useBank = defineStore('bank', () => {
     loadEffort,
     loadChannels,
     channels,
+    settings,
+    settingsBusy,
+    settingsError,
+    probeResult,
+    loadSettings,
+    saveSettings,
+    probeModel,
+    wizard,
+    wizardBusy,
+    wizardError,
+    wechatQr,
+    wechatStatus,
+    loadWizard,
+    wizardWechatQr,
+    wizardWechatPoll,
+    wizardWechatLogout,
+    wizardQqSave,
+    wizardQqConnect,
+    wizardQqDisconnect,
     init,
     refresh,
     send,

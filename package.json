@@ -10,6 +10,11 @@
     "dev": "npm --prefix runtime run dev",
     "start": "npm --prefix runtime start",
     "mcp:check": "node mcp/selftest.mjs",
+    "eval": "node scripts/evaluate.mjs",
+    "intent:eval": "node scripts/intent-eval.mjs",
+    "redteam": "node scripts/redteam-attack.mjs",
+    "demo": "node scripts/demo.mjs",
+    "tool:audit": "node scripts/tool-audit.mjs",
     "bench:llm": "node runtime/scripts/bench-llm.mts",
     "shot": "npm --prefix web exec -- node bank-shot.mjs"
   }
