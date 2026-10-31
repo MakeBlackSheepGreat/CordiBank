@@ -4,13 +4,22 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="CordiBank 银行智能体：自然语言办理转账、账单、理财、卡片、订阅与跨场景联动" />
-    <title>CordiBank · 银行智能体</title>
-    <script type="module" crossorigin src="./assets/index-CxUqiWL_.js"></script>
-    <link rel="modulepreload" crossorigin href="./assets/vue-vendor-Cmf0fobP.js">
-    <link rel="stylesheet" crossorigin href="./assets/index-CM-oOqpK.css">
+    <meta name="description" content="CordiSwarm 面向金融的蜂群智能体系统：探索者理解意图、验证者把关权限、执行者完成交易，自然语言办理转账、账单、卡片与跨场景联动" />
+    <title>CordiSwarm · 面向金融的蜂群智能体系统</title>
+    <script>
+      // 主题防闪：首帧渲染前从 localStorage 恢复主题，避免暗色用户看到白屏闪烁
+      try {
+        var t = localStorage.getItem('cordibank.theme')
+        if (t === 'dark' || t === 'light') {
+          document.documentElement.setAttribute('data-cs-theme', t)
+        }
+      } catch (e) { /* localStorage 不可用时保持默认主题 */ }
+    </script>
+    <script type="module" crossorigin src="./assets/index-tjaNy51M.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/vue-vendor-DravJpZ2.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-NKajoWTN.css">
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app"></div>
   </body>
 </html>

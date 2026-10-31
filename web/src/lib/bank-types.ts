@@ -152,10 +152,63 @@ export interface RedTeamReport {
   cases: RedTeamCaseResult[]
 }
 
+/** 思考强度：off 关闭推理，low 常规，high 深度。 */
+/** 技能中心摘要：字段与 runtime skill.registry.list 返回一致。 */
+export interface SkillSummaryView {
+  id: string
+  name: string
+  description: string
+  tags: string[]
+  category: string
+  triggers: string[]
+  bytes: number
+  updatedAt: string
+}
+
+/** 技能详情：正文为 Markdown 源文。 */
+export interface SkillDetailView extends SkillSummaryView {
+  content: string
+}
+
+export type EffortLevel = 'off' | 'low' | 'high'
+
+/** 思考强度状态与可选档位。 */
+export interface EffortStatus {
+  effort: EffortLevel
+  options: EffortLevel[]
+  model?: string
+}
+
+/** 模型问答的单轮用量。 */
+export interface AskUsage {
+  promptTokens: number
+  completionTokens: number
+  reasoningTokens: number
+  calls: number
+}
+
+/** 模型问答的结果：只读问答给出正文，写操作转交编排层。 */
+export interface AskResult {
+  mode: 'readonly' | 'write' | 'unavailable'
+  reason?: string
+  loop?: {
+    text: string
+    stopReason: string
+    steps: Array<{ step: number; calls: Array<{ name: string; ok: boolean; summary: string }> }>
+    usage: AskUsage
+    error?: string
+  }
+  chat?: BankChatReply
+}
+
 export interface BankMessage {
   id: string
   role: 'user' | 'agent'
   text: string
   ts: string
   reply?: BankChatReply
+  /** 生成该回复时的推理过程，仅在模型开启思考时存在。 */
+  reasoning?: string
+  /** 该条回复来自规则编排还是模型问答。 */
+  source?: 'deal' | 'ask'
 }
