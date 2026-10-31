@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useBank } from '../../stores/bank'
+import { helpOpen } from '../../lib/ui-bus'
 
 const bank = useBank()
 
@@ -49,6 +50,14 @@ function modeLabel(mode: string): string {
         {{ bank.modelStatus.model }} · {{ modeLabel(bank.modelStatus.mode) }}
       </span>
       <span v-else class="state-badge state-neutral">规则模式</span>
+      <button
+        class="topbar__help"
+        type="button"
+        title="功能指南"
+        @click="helpOpen = true"
+      >
+        指南
+      </button>
       <button
         class="topbar__theme"
         type="button"
@@ -147,6 +156,22 @@ function modeLabel(mode: string): string {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.topbar__help {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 9px;
+  border: 1px solid var(--color-stroke-2);
+  background: var(--color-surface-1);
+  color: var(--color-ink-2);
+  font-size: var(--font-size-caption);
+  cursor: pointer;
+}
+
+.topbar__help:hover {
+  border-color: var(--color-accent-line);
+  color: var(--color-accent-ink);
 }
 
 .topbar__theme {
