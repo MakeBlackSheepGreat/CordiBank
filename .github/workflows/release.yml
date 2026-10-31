@@ -1,0 +1,57 @@
+name: release
+
+# 推送 v* 标签即发布：完整门禁 → 构建 runtime dist 与 web dist →
+# 打包含构建产物的源码发行包（解压即可 node runtime/dist/server.js 起服）→ 创建 GitHub Release。
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            runtime/package-lock.json
+            web/package-lock.json
+
+      - name: 安装依赖
+        run: |
+          npm --prefix runtime ci
+          npm --prefix web ci
+
+      - name: 运行时类型检查与构建
+        run: npm --prefix runtime run build
+
+      - name: 前端构建
+        run: npm --prefix web run build
+
+      - name: 自动化测试
+        run: npm --prefix runtime test
+
+      - name: MCP 服务自检
+        run: node mcp/selftest.mjs
+
+      - name: 打包发行包（含 runtime/dist 与 web/dist）
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          zip -rqy "cordibank-$VERSION.zip" . \
+            -x ".git/*" \
+            -x "*/node_modules/*" \
+            -x ".github/*" \
+            -x ".shot-tmp/*" ".work/*" "_scratch/*" ".dsh-src-tmp/*" ".dsh-ops/*"
+
+      - name: 创建 GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: cordibank-*.zip
+          generate_release_notes: true
+

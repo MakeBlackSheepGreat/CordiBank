@@ -46,3 +46,21 @@ desktop/.electron-cache/
 Thumbs.db
 .vscode/
 .idea/
+
+# 本地会话与验收产物（不入库）
+.dsh-ops/
+.dsh-src-tmp/
+.shot-tmp/
+_scratch/
+.redteam-out.txt
+.realtest/
+.smoke-*/
+.test-tmp/
+.demo-store/
+.ops-sandbox/
+.eval-report.json
+runtime/.gate*.txt
+runtime/pnpm-lock.yaml
+runtime/pnpm-workspace.yaml
+web/.shot.mjs
+web/verify-stream.mjs

@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   verify:
@@ -36,3 +37,48 @@ jobs:
 
       - name: MCP 服务自检
         run: node mcp/selftest.mjs
+
+  # 手动触发的安全评测：需要仓库密钥 DEEPSEEK_API_KEY（Settings → Secrets → Actions）。
+  # 覆盖 G1-G10 指标（注入拦截/误拦/越权/脱敏/审计完整/防篡改/P95）、120 条意图/槽位测试集
+  # 与 19 项红队攻防。PR 与推送门禁不跑此作业，保持确定性。
+  security-eval:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: runtime/package-lock.json
+
+      - name: 安装运行时依赖
+        run: npm --prefix runtime ci
+
+      - name: 构建运行时
+        run: npm --prefix runtime run build
+
+      - name: 意图与槽位评测（G2/G3）
+        run: node scripts/intent-eval.mjs
+
+      - name: 安全评测（G1-G10）
+        if: "${{ secrets.DEEPSEEK_API_KEY != '' }}"
+        env:
+          DEEPSEEK_API_KEY: "${{ secrets.DEEPSEEK_API_KEY }}"
+        run: node scripts/evaluate.mjs
+
+      - name: 红队攻防（19 项）
+        if: "${{ secrets.DEEPSEEK_API_KEY != '' }}"
+        env:
+          DEEPSEEK_API_KEY: "${{ secrets.DEEPSEEK_API_KEY }}"
+        run: node scripts/redteam-attack.mjs
+
+      - name: 上传评测报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: .eval-report.json
+          if-no-files-found: ignore
+
