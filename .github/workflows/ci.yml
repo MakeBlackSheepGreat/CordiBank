@@ -84,3 +84,48 @@ jobs:
           path: .eval-report.json
           if-no-files-found: ignore
 
+
+  # 桌面端构建验证：exe 安装包 + 免安装 zip 的可构建性与启动冒烟。
+  # 发布产物由 release.yml（tag 触发）附加到 GitHub Release，这里只做门禁。
+  desktop:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            runtime/package-lock.json
+            web/package-lock.json
+            desktop/package-lock.json
+
+      - name: 安装依赖
+        run: |
+          npm --prefix runtime ci
+          npm --prefix web ci
+          npm --prefix desktop ci
+
+      - name: 预下载 Electron 运行时（与 electronDist 缓存约定一致）
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force desktop/.electron-cache | Out-Null
+          Invoke-WebRequest -UseBasicParsing "https://github.com/electron/electron/releases/download/v45.1.0/electron-v45.1.0-win32-x64.zip" "-OutFile" desktop/.electron-cache/electron-v45.1.0-win32-x64.zip
+          $hash = (Get-FileHash desktop/.electron-cache/electron-v45.1.0-win32-x64.zip -Algorithm SHA256).Hash.ToLower()
+          if ($hash -ne "55eaba17abff7b5bba6c3bbc85068967379024fe742fe9c7fdba9118922ccbe2") { throw "electron 运行时校验和不符: $hash" }
+
+      - name: 构建安装包与免安装包
+        run: npm --prefix desktop run dist
+
+      - name: 启动冒烟（免安装版拉起 15 秒不退出）
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem "desktop/release/win-unpacked" -Filter "*.exe" |
+            Where-Object { $_.Name -notmatch "Uninstall" } | Select-Object -First 1
+          if (-not $exe) { throw "win-unpacked 缺主程序" }
+          $p = Start-Process -FilePath $exe.FullName -PassThru
+          Start-Sleep -Seconds 15
+          if ($p.HasExited) { throw "应用启动后退出（exit=$($p.ExitCode))" }
+          "smoke ok: $($exe.Name) 存活 15s"
+          Stop-Process -Id $p.Id -Force

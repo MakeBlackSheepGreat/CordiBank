@@ -64,3 +64,4 @@ runtime/pnpm-lock.yaml
 runtime/pnpm-workspace.yaml
 web/.shot.mjs
 web/verify-stream.mjs
+runtime/pack-deps/
