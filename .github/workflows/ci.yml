@@ -43,6 +43,8 @@ jobs:
   # 与 19 项红队攻防。PR 与推送门禁不跑此作业，保持确定性。
   security-eval:
     runs-on: ubuntu-latest
+    env:
+      HAS_KEY: "${{ secrets.DEEPSEEK_API_KEY != '' }}"
     if: github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
@@ -63,13 +65,13 @@ jobs:
         run: node scripts/intent-eval.mjs
 
       - name: 安全评测（G1-G10）
-        if: "${{ secrets.DEEPSEEK_API_KEY != '' }}"
+        if: env.HAS_KEY == 'true'
         env:
           DEEPSEEK_API_KEY: "${{ secrets.DEEPSEEK_API_KEY }}"
         run: node scripts/evaluate.mjs
 
       - name: 红队攻防（19 项）
-        if: "${{ secrets.DEEPSEEK_API_KEY != '' }}"
+        if: env.HAS_KEY == 'true'
         env:
           DEEPSEEK_API_KEY: "${{ secrets.DEEPSEEK_API_KEY }}"
         run: node scripts/redteam-attack.mjs
