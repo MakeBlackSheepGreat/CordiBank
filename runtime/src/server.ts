@@ -37,6 +37,17 @@ export interface ServerHandle {
   close(): Promise<void>;
 }
 
+/** 渠道验签只需要少数请求头；统一小写键传出，避免整个头对象进入服务层。 */
+const CHANNEL_HEADER_KEYS = ["timestamp", "sign", "x-openclaw-token", "authorization"] as const;
+
+function pickHeaders(headers: IncomingMessage["headers"]): Record<string, string> {
+  const picked: Record<string, string> = {};
+  for (const key of CHANNEL_HEADER_KEYS) {
+    const value = headers[key];
+    if (typeof value === "string") picked[key] = value;
+  }
+  return picked;
+}
 function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
@@ -283,7 +294,12 @@ export async function startServer(options: { port?: number; cfg?: RuntimeConfig 
         const raw = await readBody(req);
         const payload = JSON.parse(raw) as unknown;
         await registry.ensureServiceMounted("channel.hub.incoming", runtime.ctx);
-        const result = await registry.call("channel.hub.incoming", [name, payload]);
+        const result = await registry.call("channel.hub.incoming", [name, payload, pickHeaders(req.headers)]);
+        // 飞书 challenge 握手与钉钉同步回包要求响应体为官方协议原样 JSON，而非 {ok,result} 包装。
+        if (result !== null && typeof result === "object" && "rawBody" in (result as Record<string, unknown>)) {
+          sendJson(res, 200, (result as Record<string, unknown>).rawBody);
+          return;
+        }
         sendJson(res, 200, { ok: true, result });
       } catch (error) {
         if (error instanceof RuntimeError) {

@@ -51,6 +51,18 @@ export interface RuntimeConfig {
   channelQqApiUrl: string;
   /** QQ API 访问令牌（Bearer），可空；同时用于校验 OneBot 上报的 token 字段。 */
   channelQqToken: string;
+  /** 钉钉企业内部机器人加签密钥（官方回调 sign 验签用），空串=未接入。 */
+  channelDingtalkSecret: string;
+  /** 飞书应用 App ID（换取 tenant_access_token 用），空串=未接入。 */
+  channelFeishuAppId: string;
+  /** 飞书应用 App Secret。 */
+  channelFeishuAppSecret: string;
+  /** 飞书事件订阅校验令牌（Verification Token），空串则跳过校验。 */
+  channelFeishuToken: string;
+  /** 飞书开放平台基址，默认 https://open.feishu.cn。 */
+  channelFeishuApiBase: string;
+  /** OpenClaw 网关 hooks 令牌（微信接入），空串=未接入。 */
+  channelOpenclawToken: string;
 }
 
 /** 工具声明范围；非法值回落到全量。 */
@@ -150,6 +162,12 @@ export function loadConfig(overrides: Partial<RuntimeConfig> = {}): RuntimeConfi
     opsDir: overrides.opsDir ?? process.env.CORDIBANK_OPS_DIR?.trim() ?? path.join(repoRoot, ".ops-sandbox"),
     channelQqApiUrl: overrides.channelQqApiUrl ?? process.env.CORDIBANK_CHANNEL_QQ_API?.trim() ?? "",
     channelQqToken: overrides.channelQqToken ?? process.env.CORDIBANK_CHANNEL_QQ_TOKEN?.trim() ?? "",
+    channelDingtalkSecret: overrides.channelDingtalkSecret ?? process.env.CORDIBANK_CHANNEL_DINGTALK_SECRET?.trim() ?? "",
+    channelFeishuAppId: overrides.channelFeishuAppId ?? process.env.CORDIBANK_CHANNEL_FEISHU_APP_ID?.trim() ?? "",
+    channelFeishuAppSecret: overrides.channelFeishuAppSecret ?? process.env.CORDIBANK_CHANNEL_FEISHU_APP_SECRET?.trim() ?? "",
+    channelFeishuToken: overrides.channelFeishuToken ?? process.env.CORDIBANK_CHANNEL_FEISHU_TOKEN?.trim() ?? "",
+    channelFeishuApiBase: overrides.channelFeishuApiBase ?? process.env.CORDIBANK_CHANNEL_FEISHU_API_BASE?.trim() ?? "https://open.feishu.cn",
+    channelOpenclawToken: overrides.channelOpenclawToken ?? process.env.CORDIBANK_CHANNEL_OPENCLAW_TOKEN?.trim() ?? "",
   };
 }
 

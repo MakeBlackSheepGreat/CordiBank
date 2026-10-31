@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import path from "node:path";
@@ -76,7 +76,7 @@ describe("渠道接入中心", () => {
     expect(byId.get("web")?.state).toBe("active");
     expect(byId.get("desktop")?.state).toBe("active");
     expect(byId.get("qq")?.state).toBe("unconfigured");
-    expect(byId.get("wechat")?.state).toBe("ready");
+    expect(byId.get("webhook")?.state).toBe("ready");
     expect(byId.get("qq")?.messageCount).toBe(0);
   });
 
@@ -150,7 +150,7 @@ describe("渠道接入中心", () => {
       channels: Array<{ id: string; state: string; messageCount: number; lastMessageAt?: string }>;
       events: Array<{ channel: string; direction: string; text: string }>;
     };
-    const wechat = status.channels.find((c) => c.id === "wechat");
+    const wechat = status.channels.find((c) => c.id === "webhook");
     expect(wechat?.state).toBe("active");
     expect(wechat?.messageCount).toBe(1);
     expect(wechat?.lastMessageAt).toBeTruthy();
@@ -172,5 +172,73 @@ describe("渠道接入中心", () => {
     await expect(
       plugin.provider.incoming("onebot", { post_type: "message", message_type: "private", user_id: 1, raw_message: "hi" }),
     ).rejects.toThrow(/QQ API 未配置/);
+  });
+
+  it("默认状态：七个渠道全部在列，openclaw/钉钉/飞书按配置待配置", () => {
+    const plugin = createChannelsPlugin(makeCfg(), fakeDeps());
+    const status = plugin.provider.status() as { channels: Array<{ id: string; name: string }> };
+    expect(status.channels.map((c) => c.id)).toEqual(["web", "desktop", "openclaw", "qq", "dingtalk", "feishu", "webhook"]);
+  });
+
+  it("钉钉：sign 校验通过同步回包，签名错误拒绝", async () => {
+    const { createHmac } = await import("node:crypto");
+    lastCfg = makeCfg({ channelDingtalkSecret: "secret-abc" });
+    const plugin = createChannelsPlugin(lastCfg, fakeDeps());
+    const ts = String(Date.now());
+    const sign = createHmac("sha256", "secret-abc").update(ts + "\n" + "secret-abc").digest("base64");
+    const result = (await plugin.provider.incoming("dingtalk", { senderStaffId: "staff-1", text: { content: "查余额" } }, { timestamp: ts, sign })) as { ok: boolean; rawBody?: { msgtype: string; text: { content: string } } };
+    expect(result.ok).toBe(true);
+    expect(result.rawBody?.msgtype).toBe("text");
+    expect(result.rawBody?.text.content).toBe("伪回复：查余额");
+    await expect(
+      plugin.provider.incoming("dingtalk", { senderStaffId: "staff-1", text: { content: "查余额" } }, { timestamp: ts, sign: "wrong" }),
+    ).rejects.toThrow(/钉钉签名校验失败/);
+    await expect(
+      plugin.provider.incoming("dingtalk", { senderStaffId: "staff-1", text: { content: "查余额" } }, { timestamp: "1", sign }),
+    ).rejects.toThrow(/时间戳/);
+  });
+
+  it("飞书：challenge 原样直返，事件进会话并经 tenant_access_token 送回", async () => {
+    const posted: Array<{ url: string; headers: Record<string, string>; body: Record<string, unknown> }> = [];
+    vi.stubGlobal("fetch", (async (url: string, init?: { headers?: Record<string, string>; body?: string }) => {
+      posted.push({ url: String(url), headers: (init?.headers ?? {}) as Record<string, string>, body: JSON.parse(init?.body ?? "{}") as Record<string, unknown> });
+      if (String(url).includes("/tenant_access_token")) {
+        return new Response(JSON.stringify({ code: 0, tenant_access_token: "tnt-1" }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ code: 0 }), { status: 200 });
+    }) as unknown as typeof fetch);
+    try {
+      lastCfg = makeCfg({ channelFeishuAppId: "app-1", channelFeishuAppSecret: "s1", channelFeishuToken: "vt-1" });
+      const plugin = createChannelsPlugin(lastCfg, fakeDeps());
+      const challenge = (await plugin.provider.incoming("feishu", { type: "url_verification", token: "vt-1", challenge: "ch-xyz" })) as { rawBody?: { challenge: string } };
+      expect(challenge.rawBody?.challenge).toBe("ch-xyz");
+      const content = JSON.stringify({ text: "@_user_1 转账给王晓明" });
+      const result = (await plugin.provider.incoming("feishu", {
+        header: { event_type: "im.message.receive_v1", token: "vt-1" },
+        event: { sender: { sender_id: { open_id: "ou-9" } }, message: { chat_id: "oc-1", message_type: "text", content } },
+      })) as { ok: boolean; reply: string };
+      expect(result.ok).toBe(true);
+      expect(result.reply).toBe("伪回复：转账给王晓明");
+      expect(posted.some((r) => r.url.includes("/im/v1/messages") && r.body.receive_id === "oc-1")).toBe(true);
+      expect(posted.some((r) => r.url.includes("/im/v1/messages") && String(r.body.content).includes("@_user_"))).toBe(false);
+      const badToken = (await plugin.provider.incoming("feishu", { type: "url_verification", token: "bad", challenge: "c" }).then(() => "ok", (e: unknown) => String(e))) as string;
+      expect(badToken).toContain("令牌不匹配");
+    } finally {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("OpenClaw：令牌匹配进会话，未配置/不匹配拒绝", async () => {
+    lastCfg = makeCfg({ channelOpenclawToken: "hook-1" });
+    const plugin = createChannelsPlugin(lastCfg, fakeDeps());
+    const result = (await plugin.provider.incoming("openclaw", { message: "查账单", name: "wx-alice" }, { authorization: "Bearer hook-1" })) as { ok: boolean; reply: string; from: string };
+    expect(result.ok).toBe(true);
+    expect(result.reply).toBe("伪回复：查账单");
+    expect(result.from).toBe("wx-alice");
+    const unconfigured = makeCfg();
+    const bare = createChannelsPlugin(unconfigured, fakeDeps());
+    await expect(bare.provider.incoming("openclaw", { message: "hi" }, {})).rejects.toThrow(/OpenClaw hook 令牌未配置/);
+    await expect(plugin.provider.incoming("openclaw", { message: "hi" }, { authorization: "Bearer wrong" })).rejects.toThrow(/令牌不匹配/);
   });
 });
