@@ -32,8 +32,8 @@ SKIP_PREFIX = {"runtime/dist"}
 def rel(p):
     return os.path.relpath(p, ROOT).replace("\\", "/")
 
-# 安全基准的数据集、日志与跑测报告都不进交付包
-SEC_PREFIX = (".sec-data", ".sec-report")
+# 安全基准的数据集、日志与跑测报告都不进交付包（.sec-data/、.sec-report*.json、.sec-rules.log、.sec-data-run.log 等）
+SEC_PREFIX = (".sec-",)
 
 def skipped(relpath):
     parts = relpath.split("/")
