@@ -22,7 +22,7 @@ const OUTRO = `
 <div id="__outro" style="position:fixed;inset:0;z-index:999999;background:linear-gradient(135deg,#071E3E 0%,#0B2B57 58%,#0E3A73 100%);pointer-events:none;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:0 120px;font-family:'Microsoft YaHei',sans-serif;">
   <div style="width:56px;height:5px;background:#2FD4F0;margin-bottom:28px"></div>
   <div style="color:#2FD4F0;font-size:20px;letter-spacing:3px;margin-bottom:20px">实测数据 · 全部可复现</div>
-  <div style="color:#fff;font-size:54px;font-weight:700;letter-spacing:1px">244 项测试 · 21 个内置工具 · 拦截率 100%</div>
+  <div style="color:#fff;font-size:54px;font-weight:700;letter-spacing:1px">244 项测试 · 23 个内置工具 · 拦截率 100%</div>
   <div style="color:#BFE3F5;font-size:22px;margin-top:26px">代码、文档、部署说明与测试用例随提交包提供，可在评委机器上复跑</div>
   <div style="color:#8FB6D6;font-size:18px;margin-top:60px">CordiBank 蜂群项目组 · 2026 年 10 月</div>
 </div>`

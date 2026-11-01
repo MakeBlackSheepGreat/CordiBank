@@ -218,7 +218,7 @@ npm run mcp:check
 | Agent 循环 | 9 项全部通过，含真实多轮工具调用与缓存命中 | `tests/agent-loop.test.ts` |
 | Harness 注册表 | 15 项全部通过，含风险分级与解析反解 | `tests/harness.test.ts` |
 | 技能渐进披露 | 8 项全部通过，新增 Markdown 即进目录 | `tests/skill-tools.test.ts` |
-| 工具总量 | 34 个（内置 21、外部 13） | `bank.agent.tools` |
+| 工具总量 | 36 个（内置 23、外部 13） | `bank.agent.tools` |
 | 循环成本 | 2 次请求累计 3806 prompt，命中 3456，命中率 91% | `npm run bench:llm` |
 | 提示词体积 | 系统提示词 1971 字符降至 184 字符 | 同上 |
 | 模型输出契约 | 9 项全部通过，越权工具与越界金额被拒 | `tests/model-contract.test.ts` |
@@ -281,7 +281,7 @@ npm run eval          # 赛题口径全量评测，写 .eval-report.json
 npm run intent:eval   # 仅意图与槽位，不需要模型密钥
 npm run redteam       # 40 条红队用例
 npm run demo          # 一键拉起运行时与控制台按剧本演示
-npm run tool:audit    # 34 个工具逐个真跑
+npm run tool:audit    # 36 个工具逐个真跑
 ```
 
 `npm run eval` 需要 `DEEPSEEK_API_KEY`（或 `SILICONFLOW_API_KEY`），它会把运行时起在临时数据目录，跑完自动清理。
